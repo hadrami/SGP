@@ -1,0 +1,50 @@
+{
+  "app": {
+    "title": "إدارة الموظفين شبه العسكريين",
+    "subtitle": "نظام إدارة متكامل"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "remember": "تذكرني",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "signIn": "دخول",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+  },
+  "dashboard": {
+    "welcome": "مرحبا",
+    "overview": "نظرة عامة",
+    "staff": "الموظفين",
+    "totalStaff": "إجمالي الموظفين",
+    "military": "العسكريون",
+    "civilian": "المدنيون",
+    "teachers": "المعلمون",
+    "students": "الطلاب",
+    "recentActivity": "النشاط الأخير",
+    "quickActions": "إجراءات سريعة"
+  },
+  "navigation": {
+    "dashboard": "لوحة القيادة",
+    "users": "المستخدمين",
+    "military": "الموظفين العسكريين",
+    "civilian": "الموظفين المدنيين",
+    "teachers": "المعلمين",
+    "students": "الطلاب",
+    "documents": "الوثائق",
+    "settings": "الإعدادات"
+  },
+  "actions": {
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "view": "عرض",
+    "download": "تنزيل",
+    "upload": "رفع"
+  }
+}

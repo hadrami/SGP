@@ -1,0 +1,57 @@
+
+{
+  "app": {
+    "title": "Paramilitary Personnel Management",
+    "subtitle": "Integrated Management System"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "remember": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign in",
+    "invalidCredentials": "Invalid email or password",
+    "profile": "My profile",
+    "loggedInAs": "Logged in as"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "overview": "General Overview",
+    "staff": "Staff",
+    "totalStaff": "Total Staff",
+    "military": "Military",
+    "civilian": "Civilians",
+    "teachers": "Teachers",
+    "students": "Students",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "navigation": {
+    "main": "Main",
+    "personnel": "Personnel",
+    "education": "Education",
+    "system": "System",
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "military": "Military Personnel",
+    "civilian": "Civilian Personnel",
+    "teachers": "Teachers",
+    "students": "Students",
+    "documents": "Documents",
+    "settings": "Settings"
+  },
+  "actions": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "search": "Search",
+    "filter": "Filter",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload"
+  }
+}

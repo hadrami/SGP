@@ -1,0 +1,612 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Table Utilisateurs
+model User {
+  id             Int             @id @default(autoincrement())
+  identifier     String          @unique
+  name           String
+  password       String
+  email          String?
+  role           String          @default("USER")
+  langPreference String?         @default("fr")
+  isFirstLogin   Boolean         @default(true)
+  lastLogin      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  // Relations
+  instituts      Institut[]      @relation("DirecteurInstitut") // Directeur d'institut
+  documents      Document[]      @relation("DocumentUploader")
+  situations     DailySituation[] @relation("SituationCreator")
+
+  @@map("users")
+}
+
+// Table Instituts/Établissements
+model Institut {
+  id          String    @id @default(uuid())
+  nom         String
+  code        String    @unique
+  emplacement String
+  description String?
+  anneeEtude  Int?
+  
+  // Relations avec directeur
+  directeurId Int?
+  directeur   User?     @relation("DirecteurInstitut", fields: [directeurId], references: [id])
+  
+  // Relations
+  personnels  Personnel[]
+  situations  DailySituation[]
+  // Relation avec Unite
+  unites      Unite[]
+
+  @@map("instituts")
+}
+
+// Table pour les grandes unités
+model Unite {
+  id           String      @id @default(uuid())
+  nom          String
+  code         String      @unique
+  description  String?
+  
+  // Relations
+  institutId   String?
+  institut     Institut?   @relation(fields: [institutId], references: [id])
+  sousUnites   SousUnite[]
+
+  @@map("unites")
+}
+
+// Table pour les sous-unités
+model SousUnite {
+  id           String      @id @default(uuid())
+  nom          String
+  code         String      @unique
+  description  String?
+  
+  // Relations avec l'unité parente
+  uniteId      String
+  unite        Unite       @relation(fields: [uniteId], references: [id])
+  
+  // Militaires dans cette sous-unité
+  militaires   Militaire[]
+
+  @@map("sous_unites")
+}
+
+// Table pour les armes (branches) militaires
+model Arme {
+  id           String      @id @default(uuid())
+  nom          String      @unique
+  description  String?
+  
+  // Relations
+  militaires   Militaire[]
+  specialites  Specialite[]
+
+  @@map("armes")
+}
+
+// Table pour les spécialités militaires
+model Specialite {
+  id           String      @id @default(uuid())
+  nom          String
+  description  String?
+  
+  // Relations
+  armeId       String
+  arme         Arme        @relation(fields: [armeId], references: [id])
+  militaires   Militaire[]
+
+  @@map("specialites")
+}
+
+// Types de diplômes
+enum TypeDiplome {
+  MILITAIRE
+  ACADEMIQUE
+}
+
+// Table pour les diplômes
+model Diplome {
+  id           String      @id @default(uuid())
+  titre        String
+  typeDiplome  TypeDiplome
+  institution  String
+  dateObtention DateTime
+  description  String?
+  
+  // Relations
+  personnelId  String
+  personnel    Personnel   @relation(fields: [personnelId], references: [id])
+
+  @@map("diplomes")
+}
+
+// Table pour les décorations militaires
+model Decoration {
+  id           String      @id @default(uuid())
+  titre        String
+  description  String?
+  dateObtention DateTime
+  
+  // Relations
+  militaireId  String
+  militaire    Militaire   @relation(fields: [militaireId], references: [id])
+
+  @@map("decorations")
+}
+
+// Types de notation
+enum TypeNotation {
+  ANNUELLE
+  EXCEPTIONNELLE
+  STAGE
+  MISSION
+}
+
+// Table pour les notations des militaires
+model Notation {
+  id           String      @id @default(uuid())
+  typeNotation TypeNotation
+  date         DateTime
+  note         Float
+  observations String?
+  notateur     String      // Nom/ID de la personne qui a fait la notation
+  
+  // Relations
+  militaireId  String
+  militaire    Militaire   @relation(fields: [militaireId], references: [id])
+
+  @@map("notations")
+}
+
+// Status des stages
+enum StatutStage {
+  EN_COURS
+  EFFECTUE
+  ANNULE
+  PLANIFIE
+}
+
+// Table pour les stages militaires
+model StageMilitaire {
+  id           String      @id @default(uuid())
+  titre        String
+  description  String?
+  lieu         String
+  dateDebut    DateTime
+  dateFin      DateTime?
+  statut       StatutStage @default(EN_COURS)
+  certificat   String?     // Chemin vers le certificat de stage
+  observations String?
+  
+  // Relations
+  militaireId  String
+  militaire    Militaire   @relation(fields: [militaireId], references: [id])
+
+  @@map("stages_militaires")
+}
+
+// Énumération pour le type de personnel
+enum TypePersonnel {
+  MILITAIRE
+  CIVIL_PROFESSEUR
+  CIVIL_ETUDIANT
+  CIVIL_EMPLOYE
+}
+
+// Table du personnel (commune à tous les types)
+model Personnel {
+  id             String         @id @default(uuid())
+  typePersonnel  TypePersonnel
+  nom            String
+  prenom         String
+  dateNaissance  DateTime?
+  lieuNaissance  String?
+  telephone      String?
+  email          String?
+  
+  // NNI commun à tous
+  nni            String         @unique
+  
+  // Relations
+  institutId     String
+  institut       Institut       @relation(fields: [institutId], references: [id])
+  
+  // Relations avec les détails spécifiques
+  militaire      Militaire?
+  professeur     Professeur?
+  etudiant       Etudiant?
+  employe        Employe?
+  
+  // Documents et situations
+  documents      Document[]
+  diplomes       Diplome[]      // Relation avec les diplômes
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("personnels")
+}
+
+// Catégorie principale de grade militaire
+enum CategorieMilitaire {
+  OFFICIER
+  SOUS_OFFICIER
+  SOLDAT
+}
+
+// Sous-catégories pour les officiers
+enum CategorieOfficier {
+  OFFICIER_SUPERIEUR    // Commandant, Lieutenant-Colonel, Colonel, Général
+  OFFICIER_SUBALTERNE   // Sous-Lieutenant, Lieutenant, Capitaine
+}
+
+// Sous-catégories pour les sous-officiers
+enum CategorieSousOfficier {
+  SOUS_OFFICIER_SUPERIEUR    // Adjudant, Adjudant-Chef
+  SOUS_OFFICIER_SUBALTERNE   // Sergent, Sergent-Chef
+}
+
+// Les grades militaires
+enum GradeMilitaire {
+  // Officiers Supérieurs
+  COMMANDANT
+  LIEUTENANT_COLONEL
+  COLONEL
+  GENERAL
+  
+  // Officiers Subalternes
+  SOUS_LIEUTENANT
+  LIEUTENANT
+  CAPITAINE
+  
+  // Sous-Officiers Supérieurs
+  ADJUDANT
+  ADJUDANT_CHEF
+  
+  // Sous-Officiers Subalternes
+  SERGENT
+  SERGENT_CHEF
+  
+  // Soldats
+  SOLDAT_DEUXIEME_CLASSE
+  SOLDAT_PREMIERE_CLASSE
+  CAPORAL
+}
+
+// Correspondance des grades avec leurs sous-catégories
+// (les mappings seront implémentés dans l'application)
+// COMMANDANT, LIEUTENANT_COLONEL, COLONEL, GENERAL -> OFFICIER_SUPERIEUR
+// SOUS_LIEUTENANT, LIEUTENANT, CAPITAINE -> OFFICIER_SUBALTERNE
+// ADJUDANT, ADJUDANT_CHEF -> SOUS_OFFICIER_SUPERIEUR
+// SERGENT, SERGENT_CHEF -> SOUS_OFFICIER_SUBALTERNE
+
+// Groupe sanguin
+enum GroupeSanguin {
+  A_POSITIF
+  A_NEGATIF
+  B_POSITIF
+  B_NEGATIF
+  AB_POSITIF
+  AB_NEGATIF
+  O_POSITIF
+  O_NEGATIF
+}
+
+// Situation du militaire
+enum SituationMilitaire {
+  PRESENT
+  ABSENT
+  MISSION
+  CONGE
+  HOSPITALISATION
+  FORMATION
+  DETACHEMENT
+  RETRAITE
+  DISPONIBILITE
+  DESERTEUR
+  AUTRE
+}
+
+// Table Militaire (détails spécifiques)
+model Militaire {
+  id                    String             @id @default(uuid())
+  matricule             String             @unique // Matricule militaire
+  grade                 GradeMilitaire
+  categorie             CategorieMilitaire
+  
+  // Sous-catégories pour les officiers et sous-officiers
+  categorieOfficier     CategorieOfficier?      // Seulement rempli si categorie = OFFICIER
+  categorieSousOfficier CategorieSousOfficier?  // Seulement rempli si categorie = SOUS_OFFICIER
+  
+  groupeSanguin         GroupeSanguin?
+  dateRecrutement       DateTime?
+  telephoneService      String?
+  dateDernierePromotion DateTime?
+  
+  // Situation du militaire
+  situation             SituationMilitaire @default(PRESENT)
+  situationDetail       String?            // Pour les détails supplémentaires
+  situationDepuis       DateTime?          // Date de début de la situation actuelle
+  situationJusqua       DateTime?          // Date de fin prévue (optionnelle)
+  
+  // Relations
+  personnelId           String             @unique
+  personnel             Personnel          @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  
+  // Relation avec la fonction
+  fonctionId            String?
+  fonction              Fonction?          @relation(fields: [fonctionId], references: [id])
+  
+  // Relation avec sous-unité
+  sousUniteId           String?
+  sousUnite             SousUnite?         @relation(fields: [sousUniteId], references: [id])
+  
+  // Relation avec arme
+  armeId                String?
+  arme                  Arme?              @relation(fields: [armeId], references: [id])
+  
+  // Relation avec spécialité
+  specialiteId          String?
+  specialite            Specialite?        @relation(fields: [specialiteId], references: [id])
+  
+  // Relations 1-to-many
+  decorations           Decoration[]
+  notations             Notation[]
+  stagesMilitaires      StageMilitaire[]
+  situationsHistorique  SituationHistorique[]
+
+  @@map("militaires")
+}
+
+// Historique des situations des militaires
+model SituationHistorique {
+  id               String             @id @default(uuid())
+  situation        SituationMilitaire
+  detail           String?
+  dateDebut        DateTime
+  dateFin          DateTime
+  observations     String?
+  
+  // Relations
+  militaireId      String
+  militaire        Militaire          @relation(fields: [militaireId], references: [id])
+  
+  @@map("situations_historique")
+}
+
+// Table Fonction (remplace Position)
+model Fonction {
+  id          String      @id @default(uuid())
+  titre       String
+  description String?
+  
+  // Relations
+  militaires  Militaire[]
+
+  @@map("fonctions")
+}
+
+// Types de contrat
+enum TypeContrat {
+  PERMANENT
+  CDI
+  CDD
+  VACATAIRE
+  PSV
+}
+
+// Table Professeur (détails spécifiques)
+model Professeur {
+  id              String       @id @default(uuid())
+  specialite      String
+  diplome         String
+  position        String?
+  typeContrat     TypeContrat
+  
+  // Relations
+  personnelId     String       @unique
+  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  matieres        Matiere[]
+  classes         Classe[]     @relation("ProfesseurClasses")
+
+  @@map("professeurs")
+}
+
+// Table pour les matières enseignées
+model Matiere {
+  id              String       @id @default(uuid())
+  nom             String
+  code            String?
+  
+  // Relations
+  professeurId    String
+  professeur      Professeur   @relation(fields: [professeurId], references: [id])
+  coursClasses    CoursClasse[]
+
+  @@map("matieres")
+}
+
+// Type de cours
+enum TypeCours {
+  COURS
+  TP
+  TD
+}
+
+// Table pour les classes
+model Classe {
+  id              String       @id @default(uuid())
+  nom             String
+  niveau          String
+  anneeScolaire   String
+  
+  // Relations
+  professeurs     Professeur[] @relation("ProfesseurClasses")
+  etudiants       Etudiant[]   @relation("EtudiantClasses")
+  coursClasses    CoursClasse[]
+
+  @@map("classes")
+}
+
+// Table de liaison cours-classe
+model CoursClasse {
+  id              String       @id @default(uuid())
+  typeCours       TypeCours
+  nbHeures        Int
+  
+  // Relations
+  matiereId       String
+  matiere         Matiere      @relation(fields: [matiereId], references: [id])
+  classeId        String
+  classe          Classe       @relation(fields: [classeId], references: [id])
+
+  @@map("cours_classes")
+}
+
+// Statut de l'étudiant
+enum StatutEtudiant {
+  PRESENT
+  ABSENT
+  CONSULTATION_MEDICALE
+  SANCTION
+  STAGE
+}
+
+// Table Étudiant (détails spécifiques)
+model Etudiant {
+  id              String         @id @default(uuid())
+  matricule       String         @unique
+  diplome         String?
+  anneeEtude      Int
+  statut          StatutEtudiant @default(PRESENT)
+  
+  // Relations
+  personnelId     String         @unique
+  personnel       Personnel      @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  classes         Classe[]       @relation("EtudiantClasses")
+  relevesNotes    ReleveNote[]
+  stages          Stage[]
+
+  @@map("etudiants")
+}
+
+// Table pour les relevés de notes
+model ReleveNote {
+  id              String       @id @default(uuid())
+  semestre        String
+  anneeScolaire   String
+  dateEmission    DateTime     @default(now())
+  
+  // Relations
+  etudiantId      String
+  etudiant        Etudiant     @relation(fields: [etudiantId], references: [id])
+  notes           Note[]
+
+  @@map("releves_notes")
+}
+
+// Table des notes
+model Note {
+  id              String       @id @default(uuid())
+  matiere         String
+  note            Float
+  coefficient     Float
+  
+  // Relations
+  releveNoteId    String
+  releveNote      ReleveNote   @relation(fields: [releveNoteId], references: [id])
+
+  @@map("notes")
+}
+
+// Table pour les stages
+model Stage {
+  id              String       @id @default(uuid())
+  titre           String
+  description     String?
+  entreprise      String
+  dateDebut       DateTime
+  dateFin         DateTime
+  evaluation      String?
+  
+  // Relations
+  etudiantId      String
+  etudiant        Etudiant     @relation(fields: [etudiantId], references: [id])
+
+  @@map("stages")
+}
+
+// Table Employé (détails spécifiques)
+model Employe {
+  id              String       @id @default(uuid())
+  position        String
+  typeContrat     TypeContrat
+  diplome         String?
+  situation       String?      @default("PRESENT")
+  
+  // Relations
+  personnelId     String       @unique
+  personnel       Personnel    @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+
+  @@map("employes")
+}
+
+// Types de documents
+enum TypeDocument {
+  IDENTITE
+  DIPLOME
+  CONTRAT
+  MEDICAL
+  ADMINISTRATIF
+  AUTRE
+}
+
+// Table des documents
+model Document {
+  id              String       @id @default(uuid())
+  typeDocument    TypeDocument
+  nomFichier      String
+  cheminFichier   String
+  description     String?
+  dateUpload      DateTime     @default(now())
+  
+  // Relations
+  personnelId     String
+  personnel       Personnel    @relation(fields: [personnelId], references: [id])
+  uploadePar      Int
+  uploadeur       User         @relation("DocumentUploader", fields: [uploadePar], references: [id])
+
+  @@map("documents")
+}
+
+// Table pour la situation quotidienne
+model DailySituation {
+  id                  String       @id @default(uuid())
+  dateRapport         DateTime     @default(now())
+  militairesPresents  Int
+  civilsPresents      Int
+  professeursPresents Int
+  etudiantsPresents   Int
+  remarques           String?
+  
+  // Relations
+  institutId          String
+  institut            Institut     @relation(fields: [institutId], references: [id])
+  creePar             Int
+  createur            User         @relation("SituationCreator", fields: [creePar], references: [id])
+
+  @@map("daily_situations")
+}

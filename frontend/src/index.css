@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .navbar-icon {
+    @apply h-5 w-5;
+  }
+
+  .sidebar-menu-item {
+    @apply flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors;
+  }
+
+  .sidebar-menu-item-active {
+    @apply bg-amber-600 text-white;
+  }
+
+  .sidebar-menu-item-inactive {
+    @apply text-white hover:bg-amber-500 hover:text-white;
+  }
+
+  .sidebar-submenu-item {
+    @apply block px-4 py-2 text-sm text-gray-300 hover:bg-amber-500 hover:text-white rounded-md;
+  }
+  
+  /* New responsive styles */
+  .page-title {
+    @apply text-xl font-semibold text-yellow-600 truncate;
+  }
+  
+  .panel {
+    @apply bg-green-100 rounded-lg shadow p-4 md:p-6;
+  }
+  
+  .panel-title {
+    @apply text-lg font-medium text-yellow-600 mb-2;
+  }
+  
+  .language-selector {
+    @apply flex items-center space-x-2;
+  }
+  
+  .language-button {
+    @apply flex items-center space-x-1 p-1 rounded transition-colors;
+  }
+  
+  .language-flag {
+    @apply w-5 h-5 rounded-full object-cover border border-gray-200;
+  }
+}
+
+/* Media queries for better responsiveness */
+@media (max-width: 640px) {
+  .page-title {
+    font-size: 1.1rem;
+  }
+  
+  .panel {
+    padding: 0.75rem;
+  }
+}
+
+/* Fix for root max-width that might cause overflow issues */
+#root {
+  max-width: 100%; 
+  padding: 0;
+  text-align: left;
+  margin: 0;
+}
+
+/* Add these styles to your global CSS file (App.css or index.css) */
+
+/* Mobile-first approach */
+@media (max-width: 767px) {
+  /* Custom scrollbar styles for mobile */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #40916c;
+    border-radius: 10px;
+  }
+
+  /* Add more space between cards on mobile */
+  .space-y-3 > * + * {
+    margin-top: 12px;
+  }
+}
+
+/* Tooltip styles */
+.tooltip-container {
+  position: relative;
+}
+
+.tooltip {
+  visibility: hidden;
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Card animation for mobile */
+@media (max-width: 767px) {
+  .animate-card-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  
+  .animate-card-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms, transform 300ms;
+  }
+}
+
+/* Better focus styles for accessibility */
+button:focus, 
+a:focus, 
+input:focus, 
+select:focus {
+  outline: 2px solid #40916c;
+  outline-offset: 2px;
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Subtle card hover effect */
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Add to your index.css file */
+.rtl {
+  direction: rtl;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Responsive header styles */
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+  }
+  
+  .header-container > div {
+    width: 100%;
+    text-align: center !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  .rtl.text-right {
+    text-align: center !important;
+  }
+  
+  .text-left {
+    text-align: center !important;
+  }
+  
+  /* Make the font smaller on mobile */
+  .header-text {
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+}
+
+/* Logos container responsive styles */
+.logos-container {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .logos-container img {
+    height: 2.5rem;
+  }
+}

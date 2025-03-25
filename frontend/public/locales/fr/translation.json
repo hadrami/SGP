@@ -1,0 +1,56 @@
+{
+  "app": {
+    "title": "Gestion du Personnel Paramilitaire",
+    "subtitle": "Système de gestion intégré"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "remember": "Se souvenir de moi",
+    "forgotPassword": "Mot de passe oublié ?",
+    "signIn": "Se connecter",
+    "invalidCredentials": "Email ou mot de passe incorrect",
+    "profile": "Mon profil",
+    "loggedInAs": "Connecté en tant que"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "overview": "Aperçu général",
+    "staff": "Personnel",
+    "totalStaff": "Effectif total",
+    "military": "Militaires",
+    "civilian": "Civils",
+    "teachers": "Enseignants",
+    "students": "Étudiants",
+    "recentActivity": "Activité récente",
+    "quickActions": "Actions rapides"
+  },
+  "navigation": {
+    "main": "Principal",
+    "personnel": "Personnel",
+    "education": "Éducation",
+    "system": "Système",
+    "dashboard": "Tableau de bord",
+    "users": "Utilisateurs",
+    "military": "Personnel militaire",
+    "civilian": "Personnel civil",
+    "teachers": "Enseignants",
+    "students": "Étudiants",
+    "documents": "Documents",
+    "settings": "Paramètres"
+  },
+  "actions": {
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "view": "Voir",
+    "download": "Télécharger",
+    "upload": "Importer"
+  }
+}
