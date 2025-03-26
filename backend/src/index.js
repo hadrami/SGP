@@ -119,7 +119,7 @@ fastify.get('/health', async () => {
   return { status: 'OK', timestamp: new Date().toISOString() };
 });
 
-// Register routes
+/// Register routes
 fastify.register(require('./routes/authRoutes'), { prefix: '/api/auth' });
 fastify.register(require('./routes/userRoutes'), { prefix: '/api/users' });
 fastify.register(require('./routes/institutRoutes'), { prefix: '/api/instituts' });
@@ -131,6 +131,13 @@ fastify.register(require('./routes/employeRoutes'), { prefix: '/api/employes' })
 fastify.register(require('./routes/documentRoutes'), { prefix: '/api/documents' });
 fastify.register(require('./routes/situationRoutes'), { prefix: '/api/situations' });
 fastify.register(require('./routes/positionRoutes'), { prefix: '/api/positions' });
+
+// Adding new routes
+fastify.register(require('./routes/armeRoutes'), { prefix: '/api/armes' });
+fastify.register(require('./routes/specialiteRoutes'), { prefix: '/api/specialites' });
+fastify.register(require('./routes/fonctionRoutes'), { prefix: '/api/fonctions' });
+fastify.register(require('./routes/uniteRoutes'), { prefix: '/api/unites' });
+fastify.register(require('./routes/sousUniteRoutes'), { prefix: '/api/sous-unites' });
 
 // Error handler global
 fastify.setErrorHandler((error, request, reply) => {
