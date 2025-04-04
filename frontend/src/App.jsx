@@ -13,6 +13,7 @@ import MilitairesList from './pages/militaires/MilitairesList';
 import MilitaireDetail from './pages/militaires/MilitaireDetail';
 import MilitaireForm from './pages/militaires/MilitaireForm';
 import MilitairesByCategory from './pages/militaires/MilitairesByCategory';
+import MilitairesPrintPage from './pages/militaires/MilitairesPrintPage';
 import './App.css';
 
 // Loading component for cleaner code
@@ -96,7 +97,7 @@ const App = () => {
           <Route path="militaires/:id" element={<MilitaireDetail />} />
           <Route path="militaires/edit/:id" element={<MilitaireForm />} />
           <Route path="militaires/categorie/:category" element={<MilitairesByCategory />} />
-          
+          <Route path="/militaires/print" element={<MilitairesPrintPage />} />
           {/* Catch-all route */}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Route>

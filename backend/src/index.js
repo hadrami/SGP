@@ -133,10 +133,10 @@ fastify.register(require('./routes/situationRoutes'), { prefix: '/api/situations
 fastify.register(require('./routes/positionRoutes'), { prefix: '/api/positions' });
 
 // Adding new routes
-fastify.register(require('./routes/armeRoutes'), { prefix: '/api/armes' });
+fastify.register(require('./routes/armRoutes'), { prefix: '/api/armes' });
 fastify.register(require('./routes/specialiteRoutes'), { prefix: '/api/specialites' });
 fastify.register(require('./routes/fonctionRoutes'), { prefix: '/api/fonctions' });
-fastify.register(require('./routes/uniteRoutes'), { prefix: '/api/unites' });
+fastify.register(require('./routes/uniteroutes'), { prefix: '/api/unites' });
 fastify.register(require('./routes/sousUniteRoutes'), { prefix: '/api/sous-unites' });
 
 // Error handler global

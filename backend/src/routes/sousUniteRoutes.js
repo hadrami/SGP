@@ -1,5 +1,5 @@
 // src/routes/sousUniteRoutes.js
-const sousUniteService = require('../services/sousUniteService');
+const sousUniteService = require('../services/sousUniteSerivce');
 
 module.exports = async function(fastify, opts) {
   // Récupérer toutes les sous-unités

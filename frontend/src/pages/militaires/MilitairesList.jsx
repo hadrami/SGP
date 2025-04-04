@@ -8,8 +8,11 @@ import { fetchMilitaires, setPage, setLimit, deleteMilitaire } from '../../redux
 import { 
   EyeIcon, PencilSquareIcon, TrashIcon, 
   MagnifyingGlassIcon, PlusIcon, ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon 
+  ChevronDoubleRightIcon, ChevronLeftIcon, ChevronRightIcon,
+  PrinterIcon // Added printer icon
 } from '@heroicons/react/24/outline';
+// Import print utility
+import { printMilitairesList } from '../../utils/PrintUtils';
 
 const MilitairesList = () => {
   const dispatch = useDispatch();
@@ -36,6 +39,7 @@ const MilitairesList = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [militaireToDelete, setMilitaireToDelete] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false); // State to track printing status
   
   // Observer for infinite scrolling
   const observer = useRef();
@@ -154,6 +158,21 @@ const MilitairesList = () => {
       // Error notification could be added here
     }
   };
+  
+  // Handle print list
+  const handlePrintList = () => {
+    if (isPrinting || militaires.length === 0) return;
+    
+    setIsPrinting(true);
+    
+    try {
+      // Navigate to the dedicated print page
+      navigate('/militaires/print');
+    } catch (error) {
+      console.error('Error navigating to print page:', error);
+      setIsPrinting(false);
+    }
+  };
 
   // Format grade for display
   const formatGrade = (grade) => {
@@ -188,13 +207,27 @@ const MilitairesList = () => {
       {/* Header with responsive design */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-3">
         <h1 className="text-xl md:text-2xl font-bold text-gray-800">Liste des Militaires</h1>
-        <Link 
-          to="/militaires/new" 
-          className="bg-[#40916c] text-white px-3 py-2 rounded-lg hover:bg-[#2d6a49] transition-colors flex items-center justify-center md:justify-start w-full md:w-auto"
-        >
-          <PlusIcon className="h-5 w-5 mr-1" />
-          <span>Ajouter un militaire</span>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Print button - Added here */}
+          <button
+            onClick={handlePrintList}
+            disabled={isPrinting || militaires.length === 0}
+            className={`bg-[#2d6a4f] text-white px-3 py-2 rounded-lg hover:bg-[#1c4330] transition-colors flex items-center justify-center w-full sm:w-auto ${
+              isPrinting || militaires.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <PrinterIcon className="h-5 w-5 mr-1" />
+            <span>Imprimer</span>
+          </button>
+          
+          <Link 
+            to="/militaires/new" 
+            className="bg-[#40916c] text-white px-3 py-2 rounded-lg hover:bg-[#2d6a49] transition-colors flex items-center justify-center w-full sm:w-auto"
+          >
+            <PlusIcon className="h-5 w-5 mr-1" />
+            <span>Ajouter un militaire</span>
+          </Link>
+        </div>
       </div>
 
       {/* Search form - responsive */}

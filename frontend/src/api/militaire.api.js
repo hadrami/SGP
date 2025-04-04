@@ -248,6 +248,48 @@ const militaireApi = {
       console.error('Error fetching sous-unites:', error);
       throw error;
     }
+  },
+
+  // Add these functions to your existing militaire.api.js file
+
+  // Récupérer tous les diplômes disponibles
+  getAllDiplomes: async () => {
+    console.log('Fetching all available diplomas');
+    try {
+      const response = await api.get('/api/militaires/diplomes');
+      console.log('Diplomes response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching diplomes:', error);
+      throw error;
+    }
+  },
+
+  // Ajouter un diplôme à un militaire
+  addDiplome: async (militaireId, diplomeData) => {
+    console.log(`Adding diploma to militaire with ID: ${militaireId}`);
+    console.log('Diploma data:', diplomeData);
+    try {
+      const response = await api.post(`/api/militaires/${militaireId}/diplomes`, diplomeData);
+      console.log('Add diploma response:', response);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding diploma to militaire ${militaireId}:`, error);
+      throw error;
+    }
+  },
+
+  // Supprimer un diplôme d'un militaire
+  deleteDiplome: async (militaireId, diplomeId) => {
+    console.log(`Deleting diploma ${diplomeId} from militaire with ID: ${militaireId}`);
+    try {
+      const response = await api.delete(`/api/militaires/${militaireId}/diplomes/${diplomeId}`);
+      console.log('Delete diploma response:', response);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting diploma ${diplomeId} from militaire ${militaireId}:`, error);
+      throw error;
+    }
   }
 };
 

@@ -78,6 +78,24 @@ const MilitairesByCategory = () => {
     return grade.replace(/_/g, ' ');
   };
 
+  const formatCategorieOfficier = (categorie) => {
+    const categorieMap = {
+      'OFFICIER_SUPERIEUR': 'Officier Supérieur',
+      'OFFICIER_SUBALTERNE': 'Officier Subalterne'
+    };
+    
+    return categorieMap[categorie] || '-';
+  };
+  
+  const formatCategorieSousOfficier = (categorie) => {
+    const categorieMap = {
+      'SOUS_OFFICIER_SUPERIEUR': 'Sous-Officier Supérieur',
+      'SOUS_OFFICIER_SUBALTERNE': 'Sous-Officier Subalterne'
+    };
+    
+    return categorieMap[categorie] || '-';
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
@@ -152,15 +170,21 @@ const MilitairesByCategory = () => {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matricule</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom & Prénom</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institut</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
+              <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matricule</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom & Prénom</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                {actualCategory === 'OFFICIER' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type d'Officier</th>
+                )}
+                {actualCategory === 'SOUS_OFFICIER' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type de Sous-Officier</th>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institut</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {militaires.length > 0 ? (
                     militaires.map((militaire) => (
@@ -174,6 +198,16 @@ const MilitairesByCategory = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatGrade(militaire.grade)}
                         </td>
+                        {actualCategory === 'OFFICIER' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatCategorieOfficier(militaire.categorieOfficier)}
+                          </td>
+                        )}
+                        {actualCategory === 'SOUS_OFFICIER' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatCategorieSousOfficier(militaire.categorieSousOfficier)}
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {militaire.personnel?.institut?.nom}
                         </td>

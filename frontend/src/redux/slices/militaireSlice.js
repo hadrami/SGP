@@ -207,6 +207,44 @@ export const fetchFonctions = createAsyncThunk(
   }
 );
 
+// Thunks for diplomas
+export const fetchDiplomes = createAsyncThunk(
+  'militaires/fetchDiplomes',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await militaireApi.getAllDiplomes();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération des diplômes' });
+    }
+  }
+);
+
+export const addDiplome = createAsyncThunk(
+  'militaires/addDiplome',
+  async ({ militaireId, diplomeData }, { rejectWithValue }) => {
+    try {
+      const response = await militaireApi.addDiplome(militaireId, diplomeData);
+      return { militaireId, diplome: response };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de l\'ajout du diplôme' });
+    }
+  }
+);
+
+export const deleteDiplome = createAsyncThunk(
+  'militaires/deleteDiplome',
+  async ({ militaireId, diplomeId }, { rejectWithValue }) => {
+    try {
+      await militaireApi.deleteDiplome(militaireId, diplomeId);
+      return { militaireId, diplomeId };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la suppression du diplôme' });
+    }
+  }
+);
+
+
 export const fetchSousUnites = createAsyncThunk(
   'militaires/fetchSousUnites',
   async (uniteId = null, { rejectWithValue }) => {
@@ -231,6 +269,7 @@ const militaireSlice = createSlice({
     specialites: {},
     fonctions: [],
     sousUnites: [],
+    diplomes: [], // For all available diplomes
     pagination: {
       total: 0,
       page: 1,
@@ -420,6 +459,66 @@ const militaireSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload?.error || 'Erreur lors de la mise à jour de la situation du militaire';
       })
+
+      // Cas pour fetchDiplomes
+.addCase(fetchDiplomes.pending, (state) => {
+  state.isLoading = true;
+  state.error = null;
+})
+.addCase(fetchDiplomes.fulfilled, (state, action) => {
+  state.isLoading = false;
+  state.error = null;
+  state.diplomes = action.payload;
+})
+.addCase(fetchDiplomes.rejected, (state, action) => {
+  state.isLoading = false;
+  state.error = action.payload?.error || 'Erreur lors de la récupération des diplômes';
+})
+
+// Cas pour addDiplome
+.addCase(addDiplome.pending, (state) => {
+  state.isLoading = true;
+  state.error = null;
+})
+.addCase(addDiplome.fulfilled, (state, action) => {
+  state.isLoading = false;
+  state.error = null;
+  
+  // Add to current militaire if it's the same one
+  if (state.currentMilitaire && state.currentMilitaire.id === action.payload.militaireId) {
+    if (!state.currentMilitaire.personnel.diplomes) {
+      state.currentMilitaire.personnel.diplomes = [];
+    }
+    state.currentMilitaire.personnel.diplomes.push(action.payload.diplome);
+  }
+})
+.addCase(addDiplome.rejected, (state, action) => {
+  state.isLoading = false;
+  state.error = action.payload?.error || 'Erreur lors de l\'ajout du diplôme';
+})
+
+// Cas pour deleteDiplome
+.addCase(deleteDiplome.pending, (state) => {
+  state.isLoading = true;
+  state.error = null;
+})
+.addCase(deleteDiplome.fulfilled, (state, action) => {
+  state.isLoading = false;
+  state.error = null;
+  
+  // Remove from current militaire if it's the same one
+  if (state.currentMilitaire && state.currentMilitaire.id === action.payload.militaireId) {
+    if (state.currentMilitaire.personnel.diplomes) {
+      state.currentMilitaire.personnel.diplomes = state.currentMilitaire.personnel.diplomes.filter(
+        d => d.id !== action.payload.diplomeId
+      );
+    }
+  }
+})
+.addCase(deleteDiplome.rejected, (state, action) => {
+  state.isLoading = false;
+  state.error = action.payload?.error || 'Erreur lors de la suppression du diplôme';
+})
       
       // Cas pour fetchMilitaireSituationHistory
       .addCase(fetchMilitaireSituationHistory.pending, (state) => {

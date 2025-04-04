@@ -1,5 +1,5 @@
 // src/routes/armeRoutes.js
-const armeService = require('../services/armeService');
+const armeService = require('../services/armService');
 
 module.exports = async function(fastify, opts) {
   // Récupérer toutes les armes

@@ -2,14 +2,18 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import militaireReducer from './slices/militaireSlice';
-import institutReducer from './slices/institutSlice'; // Make sure this is imported
+import institutReducer from './slices/institutSlice'; 
+import uniteReducer from './slices/uniteSlice'; 
+import documentsReducer from './slices/documentSlice';
 
 // Create and configure the store
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     militaires: militaireReducer,
-    instituts: institutReducer  // Make sure this is added to the store
+    instituts: institutReducer,
+    documents: documentsReducer,
+    unites: uniteReducer,  // Add this line  // Make sure this is added to the store
     // Add other reducers here
   },
   middleware: (getDefaultMiddleware) =>

@@ -19,7 +19,7 @@ async function getAllMilitaires({
   sousUniteId = null,
   fonctionId = null,
   situation = null,
-  institutId = null, 
+  uniteId = null,  // Changed from institutId to uniteId
   search = null 
 }) {
   // Construire la requête de filtrage
@@ -57,10 +57,10 @@ async function getAllMilitaires({
     where.situation = situation;
   }
   
-  if (institutId) {
+  if (uniteId) {  // Updated to use uniteId instead of institutId
     where.personnel = {
       ...where.personnel,
-      institutId
+      uniteId
     };
   }
   
@@ -93,11 +93,12 @@ async function getAllMilitaires({
     include: {
       personnel: {
         include: {
-          institut: {
-            select: {
-              id: true,
-              nom: true,
-              code: true
+          unite: {
+            // Include unite information with its specific type details
+            include: {
+              institut: true,
+              dct: true,
+              pc: true
             }
           }
         }
@@ -140,7 +141,14 @@ async function getMilitaireById(id) {
     include: {
       personnel: {
         include: {
-          institut: true,
+          unite: {
+            // Include unite information with its specific type details
+            include: {
+              institut: true,
+              dct: true,
+              pc: true
+            }
+          },
           documents: {
             include: {
               uploadeur: {
@@ -193,7 +201,14 @@ async function getMilitaireByMatricule(matricule) {
     include: {
       personnel: {
         include: {
-          institut: true,
+          unite: {
+            // Include unite information with its specific type details
+            include: {
+              institut: true,
+              dct: true,
+              pc: true
+            }
+          },
           documents: {
             include: {
               uploadeur: {
@@ -233,7 +248,7 @@ async function createMilitaire(militaireData) {
     telephone,
     email,
     nni,
-    institutId,
+    uniteId,  // Changed from institutId to uniteId
     
     // Données spécifiques au militaire
     matricule,
@@ -262,6 +277,17 @@ async function createMilitaire(militaireData) {
   
   if (existingMilitaire) {
     throw new Error(`Un militaire avec le matricule ${matricule} existe déjà`);
+  }
+  
+  // Vérifier que l'unité existe
+  if (uniteId) {
+    const unite = await prisma.unite.findUnique({
+      where: { id: uniteId }
+    });
+    
+    if (!unite) {
+      throw new Error(`L'unité avec l'ID ${uniteId} n'existe pas`);
+    }
   }
   
   // Vérifications des relations
@@ -331,7 +357,7 @@ async function createMilitaire(militaireData) {
         telephone,
         email,
         nni,
-        institutId
+        uniteId  // Changed from institutId to uniteId
       }
     });
     
@@ -359,7 +385,14 @@ async function createMilitaire(militaireData) {
       include: {
         personnel: {
           include: {
-            institut: true
+            unite: {
+              // Include unite information with its specific type details
+              include: {
+                institut: true,
+                dct: true,
+                pc: true
+              }
+            }
           }
         },
         fonction: true,
@@ -400,7 +433,7 @@ async function updateMilitaire(id, militaireData) {
     lieuNaissance,
     telephone,
     email,
-    institutId,
+    uniteId,  // Changed from institutId to uniteId
     nni,
     
     // Données spécifiques au militaire
@@ -435,6 +468,17 @@ async function updateMilitaire(id, militaireData) {
   }
   
   // Vérifications des relations si elles sont spécifiées
+  // Unité (anciennement institut)
+  if (uniteId) {
+    const unite = await prisma.unite.findUnique({
+      where: { id: uniteId }
+    });
+    
+    if (!unite) {
+      throw new Error(`L'unité avec l'ID ${uniteId} n'existe pas`);
+    }
+  }
+  
   // Fonction
   if (fonctionId) {
     const fonction = await prisma.fonction.findUnique({
@@ -500,7 +544,7 @@ async function updateMilitaire(id, militaireData) {
   // Utiliser une transaction pour mettre à jour à la fois le personnel et le militaire
   return await prisma.$transaction(async (tx) => {
     // 1. Mettre à jour le personnel
-    if (nom || prenom || dateNaissance || lieuNaissance || telephone || email || institutId || nni) {
+    if (nom || prenom || dateNaissance || lieuNaissance || telephone || email || uniteId || nni) {
       await tx.personnel.update({
         where: { id: militaire.personnelId },
         data: {
@@ -510,7 +554,7 @@ async function updateMilitaire(id, militaireData) {
           lieuNaissance: lieuNaissance || undefined,
           telephone: telephone || undefined,
           email: email || undefined,
-          institutId: institutId || undefined,
+          uniteId: uniteId || undefined,  // Changed from institutId to uniteId
           nni: nni || undefined
         }
       });
@@ -553,7 +597,14 @@ async function updateMilitaire(id, militaireData) {
       include: {
         personnel: {
           include: {
-            institut: true
+            unite: {
+              // Include unite information with its specific type details
+              include: {
+                institut: true,
+                dct: true,
+                pc: true
+              }
+            }
           }
         },
         fonction: true,
@@ -570,7 +621,6 @@ async function updateMilitaire(id, militaireData) {
     return militaireMisAJour;
   });
 }
-
 /**
  * Supprime un militaire et ses dépendances
  * @param {string} id - L'ID du militaire à supprimer
@@ -637,7 +687,7 @@ async function deleteMilitaire(id) {
     
     // 6. Supprimer les diplômes associés au personnel
     if (militaire.personnel.diplomes.length > 0) {
-      await tx.diplome.deleteMany({
+      await tx.personnelDiplome.deleteMany({
         where: { personnelId: militaire.personnelId }
       });
     }
@@ -709,6 +759,32 @@ async function getMilitairesStats() {
       id: true
     }
   });
+
+  // Compter par unité (nouveau)
+  const countByUnite = await prisma.militaire.findMany({
+    select: {
+      personnel: {
+        select: {
+          unite: {
+            select: {
+              id: true,
+              nom: true,
+              type: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Regrouper par unité
+  const uniteStats = {};
+  countByUnite.forEach(item => {
+    if (item.personnel?.unite) {
+      const uniteName = item.personnel.unite.nom;
+      uniteStats[uniteName] = (uniteStats[uniteName] || 0) + 1;
+    }
+  });
   
   // Total des militaires
   const total = await prisma.militaire.count();
@@ -734,7 +810,8 @@ async function getMilitairesStats() {
     parCategorie: categorieStats,
     parGrade: gradeStats,
     parArme: armeStats,
-    parSituation: situationStats
+    parSituation: situationStats,
+    parUnite: uniteStats // Nouveau
   };
 }
 
@@ -792,7 +869,14 @@ async function updateMilitaireSituation(id, situationData) {
       include: {
         personnel: {
           include: {
-            institut: true
+            unite: {
+              // Include unite information with its specific type details
+              include: {
+                institut: true,
+                dct: true,
+                pc: true
+              }
+            }
           }
         },
         fonction: true,
@@ -913,6 +997,110 @@ async function addStageMilitaire(militaireId, stageData) {
   return stage;
 }
 
+/**
+ * Ajoute un diplôme à un militaire
+ * @param {string} militaireId - L'ID du militaire
+ * @param {Object} diplomeData - Les données du diplôme
+ * @returns {Promise<Object>} Le diplôme créé
+ */
+async function addDiplome(militaireId, diplomeData) {
+  const {
+    diplomeId,
+    institution,
+    dateObtention,
+    observations
+  } = diplomeData;
+  
+  // Vérifier que le militaire existe
+  const militaire = await prisma.militaire.findUnique({
+    where: { id: militaireId },
+    include: {
+      personnel: true
+    }
+  });
+  
+  if (!militaire) {
+    throw new Error(`Le militaire avec l'ID ${militaireId} n'existe pas`);
+  }
+  
+  // Vérifier que le diplôme existe
+  const diplome = await prisma.diplome.findUnique({
+    where: { id: diplomeId }
+  });
+  
+  if (!diplome) {
+    throw new Error(`Le diplôme avec l'ID ${diplomeId} n'existe pas`);
+  }
+  
+  // Créer le diplôme du personnel
+  const personnelDiplome = await prisma.personnelDiplome.create({
+    data: {
+      institution,
+      dateObtention: new Date(dateObtention),
+      observations,
+      personnelId: militaire.personnelId,
+      diplomeId
+    },
+    include: {
+      diplome: true
+    }
+  });
+  
+  return personnelDiplome;
+}
+
+/**
+ * Supprime un diplôme d'un militaire
+ * @param {string} militaireId - L'ID du militaire
+ * @param {string} diplomeId - L'ID du diplôme à supprimer
+ * @returns {Promise<Object>} Message de confirmation
+ */
+async function deleteDiplome(militaireId, diplomeId) {
+  // Vérifier que le militaire existe
+  const militaire = await prisma.militaire.findUnique({
+    where: { id: militaireId },
+    include: {
+      personnel: {
+        include: {
+          diplomes: true
+        }
+      }
+    }
+  });
+  
+  if (!militaire) {
+    throw new Error(`Le militaire avec l'ID ${militaireId} n'existe pas`);
+  }
+  
+  // Vérifier que le diplôme appartient au militaire
+  const personnelDiplome = militaire.personnel.diplomes.find(
+    d => d.id === diplomeId
+  );
+  
+  if (!personnelDiplome) {
+    throw new Error(`Le diplôme avec l'ID ${diplomeId} n'appartient pas à ce militaire`);
+  }
+  
+  // Supprimer le diplôme
+  await prisma.personnelDiplome.delete({
+    where: { id: diplomeId }
+  });
+  
+  return { message: 'Diplôme supprimé avec succès' };
+}
+
+/**
+ * Récupère tous les diplômes disponibles
+ * @returns {Promise<Array>} Liste des diplômes
+ */
+async function getAllDiplomes() {
+  return await prisma.diplome.findMany({
+    orderBy: {
+      titre: 'asc'
+    }
+  });
+}
+
 module.exports = {
   getAllMilitaires,
   getMilitaireById,
@@ -925,5 +1113,8 @@ module.exports = {
   getMilitaireSituationHistory,
   addDecoration,
   addNotation,
-  addStageMilitaire
+  addStageMilitaire,
+  addDiplome,
+  deleteDiplome,
+  getAllDiplomes
 };
