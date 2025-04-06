@@ -1,1 +1,1 @@
-ALTER TABLE \"militaires\" ALTER COLUMN \"sousUniteId\" DROP NOT NULL;" > prisma/migrations/manual_fix_sous_unite/migration.sql
+ALTER TABLE "militaires" ALTER COLUMN "sousUniteId" DROP NOT NULL;

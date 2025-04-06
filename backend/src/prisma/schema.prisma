@@ -194,16 +194,32 @@ model PersonnelDiplome {
 
 // Table pour les décorations militaires
 model Decoration {
+  id          String   @id @default(uuid())
+  titre       String   @unique
+  description String?
+  dateObtention DateTime @default("2020-01-01T00:00:00Z") // Add this field with default
+  
+  // Relations
+  militaireDecorations MilitaireDecoration[]
+
+  @@map("decorations") // Keep same table name but with different structure
+}
+
+model MilitaireDecoration {
   id            String   @id @default(uuid())
-  titre         String
   description   String?
   dateObtention DateTime
+  observations  String?
 
   // Relations
   militaireId String
   militaire   Militaire @relation(fields: [militaireId], references: [id])
+  
+  decorationId String
+  decoration   Decoration @relation(fields: [decorationId], references: [id])
 
-  @@map("decorations")
+  @@unique([militaireId, decorationId, dateObtention])
+  @@map("militaire_decorations")
 }
 
 // Types de notation
@@ -408,7 +424,7 @@ model Militaire {
   specialite   Specialite? @relation(fields: [specialiteId], references: [id])
 
   // Relations 1-to-many
-  decorations          Decoration[]
+  militaireDecorations MilitaireDecoration[]
   notations            Notation[]
   stagesMilitaires     StageMilitaire[]
   situationsHistorique SituationHistorique[]

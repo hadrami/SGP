@@ -11,7 +11,11 @@ import {
   addDiplome,
   deleteDiplome 
 } from '../../redux/slices/militaireSlice';
+import DiplomModal from '../../components/DiplomModal';
+import DecorationModal from '../../components/DecorationModal'
+import DocumentModal from '../../components/DocumentModal';
 import { fetchUnites } from '../../redux/slices/uniteSlice';
+import GradeSelect from '../militaires/GradeSelect';
 
 // Import API modules directly
 import api from '../../api/axios';
@@ -119,10 +123,11 @@ const MilitaireForm = () => {
   // Diplome form state
   const [diplomeForm, setDiplomeForm] = useState({
     diplomeId: '',
-    institution: '',
+    description: '', // Changed from institution to description
     dateObtention: new Date().toISOString().split('T')[0],
     observations: ''
   });
+  
   
   // Decoration form state
   const [decorationForm, setDecorationForm] = useState({
@@ -138,6 +143,42 @@ const MilitaireForm = () => {
     file: null
   });
   
+
+  // Add this useEffect at the top of your MilitaireForm component to handle modals closing
+useEffect(() => {
+  const handleMouseDown = (e) => {
+    // For each modal that's open, prevent it from closing if user clicks inside form
+    if (showDiplomeModal) {
+      const diplomeForm = document.getElementById('diplome-form-container');
+      if (diplomeForm && diplomeForm.contains(e.target)) {
+        e.stopPropagation();
+      }
+    }
+    
+    if (showDecorationModal) {
+      const decorationForm = document.getElementById('decoration-form-container');
+      if (decorationForm && decorationForm.contains(e.target)) {
+        e.stopPropagation();
+      }
+    }
+    
+    if (showDocumentModal) {
+      const documentForm = document.getElementById('document-form-container');
+      if (documentForm && documentForm.contains(e.target)) {
+        e.stopPropagation();
+      }
+    }
+  };
+
+  // Add the event listener
+  document.addEventListener('mousedown', handleMouseDown, true);
+  
+  // Clean up
+  return () => {
+    document.removeEventListener('mousedown', handleMouseDown, true);
+  };
+}, [showDiplomeModal, showDecorationModal, showDocumentModal]);
+
   // Fetch dropdown data when component mounts
   useEffect(() => {
     // Fetch unites via Redux
@@ -292,38 +333,88 @@ const MilitaireForm = () => {
     }
   }, [currentMilitaire, isEditMode]);
   
-  // Handle changes for main form
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    
-    if (name === 'nni') {
-      // Only allow digits for NNI and limit to 10 characters
-      const digitsOnly = value.replace(/\D/g, '').substring(0, 10);
-      setFormData(prev => ({ ...prev, [name]: digitsOnly }));
-    } else if (name === 'categorie') {
-      // Reset sub-category fields when main category changes
-      let updatedData = { 
-        ...formData, 
-        [name]: value,
-        categorieOfficier: '',
-        categorieSousOfficier: '',
-        grade: '' // Reset grade when category changes
-      };
+  /// Handle changes for main form
+const handleChange = useCallback((e) => {
+  const { name, value } = e.target;
+  
+  if (name === 'nni') {
+    // Only allow digits for NNI and limit to 10 characters
+    const digitsOnly = value.replace(/\D/g, '').substring(0, 10);
+    setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+  } else if (name === 'categorie') {
+    // Reset sub-category fields when main category changes
+    let updatedData = { 
+      ...formData, 
+      [name]: value,
+      categorieOfficier: '',
+      categorieSousOfficier: '',
+      grade: '' // Reset grade when category changes
+    };
 
-      // Auto-select the first grade for the selected category if available
-      if (value && gradesByCategory[value] && gradesByCategory[value].length > 0) {
-        updatedData.grade = gradesByCategory[value][0].value;
-      }
-      
-      setFormData(updatedData);
-    } else if (name === 'armeId') {
-      // Reset specialiteId when arme changes
-      setFormData(prev => ({ ...prev, [name]: value, specialiteId: '' }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    // Auto-select the first grade for the selected category if available
+    if (value && gradesByCategory[value] && gradesByCategory[value].length > 0) {
+      updatedData.grade = gradesByCategory[value][0].value;
     }
-  }, [formData, gradesByCategory]);
-
+    
+    setFormData(updatedData);
+  } else if (name === 'grade') {
+    // Auto-detect category and subcategory based on grade
+    const grade = value;
+    let category = '';
+    let categoryOfficier = '';
+    let categorySousOfficier = '';
+    
+    // Define which grades belong to which categories
+    const officierSuperieurGrades = [
+      "COMMANDANT", "LIEUTENANT_COLONEL", "COLONEL", "GENERAL",
+      "MEDECIN_COMMANDANT", "MEDECIN_LIEUTENANT_COLONEL", "MEDECIN_COLONEL", "MEDECIN_GENERAL",
+      "INTENDANT_COMMANDANT", "INTENDANT_LIEUTENANT_COLONEL", "INTENDANT_COLONEL", "INTENDANT_GENERAL",
+      "COMMANDANT_INGENIEUR", "LIEUTENANT_COLONEL_INGENIEUR", "COLONEL_INGENIEUR", "GENERAL_INGENIEUR"
+    ];
+    
+    const officierSubalterneGrades = [
+      "SOUS_LIEUTENANT", "LIEUTENANT", "CAPITAINE",
+      "LIEUTENANT_INGENIEUR", "CAPITAINE_INGENIEUR",
+      "INTENDANT_SOUS_LIEUTENANT", "INTENDANT_LIEUTENANT", "INTENDANT_CAPITAINE",
+      "MEDECIN_LIEUTENANT", "MEDECIN_CAPITAINE"
+    ];
+    
+    const sousOfficierSuperieurGrades = ["ADJUDANT", "ADJUDANT_CHEF"];
+    const sousOfficierSubalterneGrades = ["SERGENT", "SERGENT_CHEF"];
+    const soldatGrades = ["SOLDAT_DEUXIEME_CLASSE", "SOLDAT_PREMIERE_CLASSE", "CAPORAL"];
+    
+    // Determine category and subcategory
+    if (officierSuperieurGrades.includes(grade)) {
+      category = 'OFFICIER';
+      categoryOfficier = 'OFFICIER_SUPERIEUR';
+    } else if (officierSubalterneGrades.includes(grade)) {
+      category = 'OFFICIER';
+      categoryOfficier = 'OFFICIER_SUBALTERNE';
+    } else if (sousOfficierSuperieurGrades.includes(grade)) {
+      category = 'SOUS_OFFICIER';
+      categorySousOfficier = 'SOUS_OFFICIER_SUPERIEUR';
+    } else if (sousOfficierSubalterneGrades.includes(grade)) {
+      category = 'SOUS_OFFICIER';
+      categorySousOfficier = 'SOUS_OFFICIER_SUBALTERNE';
+    } else if (soldatGrades.includes(grade)) {
+      category = 'SOLDAT';
+    }
+    
+    // Update the form data with detected categories
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: value,
+      categorie: category,
+      categorieOfficier: categoryOfficier,
+      categorieSousOfficier: categorySousOfficier
+    }));
+  } else if (name === 'armeId') {
+    // Reset specialiteId when arme changes
+    setFormData(prev => ({ ...prev, [name]: value, specialiteId: '' }));
+  } else {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  }
+}, [formData, gradesByCategory]);
   const handleDiplomeChange = useCallback((e) => {
     const { name, value } = e.target;
     setDiplomeForm(prev => ({ ...prev, [name]: value }));
@@ -354,7 +445,7 @@ const MilitaireForm = () => {
   const handleAddDiplome = useCallback((e) => {
     e.preventDefault();
     
-    if (!diplomeForm.diplomeId || !diplomeForm.institution) {
+    if (!diplomeForm.diplomeId || !diplomeForm.description) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -373,7 +464,7 @@ const MilitaireForm = () => {
     // Reset form
     setDiplomeForm({
       diplomeId: '',
-      institution: '',
+      description: '', // Reset description instead of institution
       dateObtention: new Date().toISOString().split('T')[0],
       observations: ''
     });
@@ -483,6 +574,32 @@ const MilitaireForm = () => {
     }).format(date);
   }, []);
 
+// Upload documents using FormData
+const uploadDocuments = useCallback(async (militaireId) => {
+  for (const doc of tempDocuments) {
+    // Only upload new documents that have a file
+    if (doc.file) {
+      const formData = new FormData();
+      formData.append('file', doc.file);
+      formData.append('typeDocument', doc.typeDocument);
+      formData.append('nomFichier', doc.nomFichier);
+      
+      try {
+        await api.post(`/api/militaires/${militaireId}/documents`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      } catch (error) {
+        console.error('Error uploading document:', error);
+        // Continue with other documents even if one fails
+      }
+    }
+  }
+}, [tempDocuments]);
+
+
+  
   // Submit main form
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -490,10 +607,10 @@ const MilitaireForm = () => {
     // Create a copy of the data for submission
     const submitData = { ...formData };
     
-    // Add the attachments
+    // Add the attachments with the correct field names
     submitData.diplomes = tempDiplomes.map(d => ({
       diplomeId: d.diplomeId,
-      institution: d.institution,
+      description: d.description, // Changed from institution to description
       dateObtention: d.dateObtention,
       observations: d.observations
     }));
@@ -503,6 +620,8 @@ const MilitaireForm = () => {
       description: d.description,
       dateObtention: d.dateObtention
     }));
+    
+    // Rest of the handler remains the same...
     
     // Handle categories - REMOVE the fields instead of setting to null
     if (submitData.categorie !== 'OFFICIER') {
@@ -548,287 +667,143 @@ const MilitaireForm = () => {
       console.error('Error saving militaire:', error);
       alert(`Erreur: ${error.error || 'Une erreur est survenue lors de l\'enregistrement'}`);
     }
-  }, [formData, tempDiplomes, tempDecorations, tempDocuments, isEditMode, id, dispatch, navigate]);
+  }, [formData, tempDiplomes, tempDecorations, tempDocuments, isEditMode, id, dispatch, navigate, uploadDocuments]);
+  
+  // 4. Updated display in the UI for diplomes to use description instead of institution
+  // This replaces the part where diplomes are displayed in the UI
+  {tempDiplomes.length === 0 ? (
+    <p className="text-gray-500 italic">Aucun diplôme ajouté</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {tempDiplomes.map((diplome, index) => (
+        <div key={diplome.id} className="border rounded-md p-3 relative">
+          <button
+            type="button"
+            onClick={() => handleRemoveDiplome(index)}
+            className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+            title="Supprimer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          <h4 className="font-medium">
+            {diplome.diplome?.titre || 'Diplôme'}
+          </h4>
+          <p className="text-sm text-gray-600">Description: {diplome.description}</p>
+          <p className="text-sm text-gray-500">Obtenu le: {formatDate(diplome.dateObtention)}</p>
+          {diplome.observations && (
+            <p className="text-sm text-gray-500 mt-1">{diplome.observations}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  )}
 
-  // Upload documents using FormData
-  const uploadDocuments = useCallback(async (militaireId) => {
-    for (const doc of tempDocuments) {
-      // Only upload new documents that have a file
-      if (doc.file) {
-        const formData = new FormData();
-        formData.append('file', doc.file);
-        formData.append('typeDocument', doc.typeDocument);
-        formData.append('nomFichier', doc.nomFichier);
+
+
+
+// Diplome Modal Component
+const DiplomeModal = () => {
+  if (!showDiplomeModal) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full" id="diplome-form-container">
+        <h2 className="text-xl font-bold mb-4">Ajouter un diplôme</h2>
         
-        try {
-          await api.post(`/api/militaires/${militaireId}/documents`, formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          });
-        } catch (error) {
-          console.error('Error uploading document:', error);
-          // Continue with other documents even if one fails
-        }
-      }
-    }
-  }, [tempDocuments]);
-  
-  // Diplome Modal Component
-  const DiplomeModal = () => {
-    if (!showDiplomeModal) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full">
-          <h2 className="text-xl font-bold mb-4">Ajouter un diplôme</h2>
-          
-          <form onSubmit={handleAddDiplome}>
-            <div className="mb-4">
-              <label htmlFor="diplomeId" className="block text-gray-700 mb-1">
-                Diplôme <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="diplomeId"
-                name="diplomeId"
-                value={diplomeForm.diplomeId}
-                onChange={handleDiplomeChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              >
-                <option value="">Sélectionner un diplôme</option>
-                {diplomes && diplomes.length > 0 ? (
-                  diplomes.map(diplome => (
-                    <option key={diplome.id} value={diplome.id}>
-                      {diplome.titre} ({diplome.typeDiplome?.replace(/_/g, ' ') || 'Non spécifié'})
-                    </option>
-                  ))
-                ) : (
-                  <option value="" disabled>Aucun diplôme disponible</option>
-                )}
-              </select>
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="institution" className="block text-gray-700 mb-1">
-                Institution <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="institution"
-                name="institution"
-                value={diplomeForm.institution}
-                onChange={handleDiplomeChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="dateObtention" className="block text-gray-700 mb-1">
-                Date d'obtention <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                id="dateObtention"
-                name="dateObtention"
-                value={diplomeForm.dateObtention}
-                onChange={handleDiplomeChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="observations" className="block text-gray-700 mb-1">
-                Observations
-              </label>
-              <textarea
-                id="observations"
-                name="observations"
-                value={diplomeForm.observations}
-                onChange={handleDiplomeChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                rows="3"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => setShowDiplomeModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
-              >
-                Ajouter
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-  
-  // Decoration Modal Component
-  const DecorationModal = () => {
-    if (!showDecorationModal) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full">
-          <h2 className="text-xl font-bold mb-4">Ajouter une décoration</h2>
-          
-          <form onSubmit={handleAddDecoration}>
-            <div className="mb-4">
-              <label htmlFor="titre" className="block text-gray-700 mb-1">
-                Titre <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="titre"
-                name="titre"
-                value={decorationForm.titre}
-                onChange={handleDecorationChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={decorationForm.description}
-                onChange={handleDecorationChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                rows="3"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="dateObtention" className="block text-gray-700 mb-1">
-                Date d'obtention <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                id="dateObtention"
-                name="dateObtention"
-                value={decorationForm.dateObtention}
-                onChange={handleDecorationChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => setShowDecorationModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
-              >
-                Ajouter
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-  
-  // Document Modal Component
-  const DocumentModal = () => {
-    if (!showDocumentModal) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full">
-          <h2 className="text-xl font-bold mb-4">Ajouter un document</h2>
-          
-          <form onSubmit={handleAddDocument}>
-            <div className="mb-4">
-              <label htmlFor="file" className="block text-gray-700 mb-1">
-                Fichier <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="file"
-                id="file"
-                name="file"
-                onChange={handleDocumentChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="nomFichier" className="block text-gray-700 mb-1">
-                Nom du fichier <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="nomFichier"
-                name="nomFichier"
-                value={documentForm.nomFichier}
-                onChange={handleDocumentChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-                <label htmlFor="typeDocument" className="block text-gray-700 mb-1">
-                  Type de document
-                </label>
-                <select
-                  id="typeDocument"
-                  name="typeDocument"
-                  value={documentForm.typeDocument}
-                  onChange={handleDocumentChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                >
-                  <option value="IDENTITE">Document d'identité</option>
-                  <option value="DIPLOME">Diplôme</option>
-                  <option value="CERTIFICAT">Certificat</option>
-                  <option value="EVALUATION">Évaluation</option>
-                  <option value="RAPPORT">Rapport</option>
-                  <option value="DEMANDE">Demande</option>
-                  <option value="AUTRE">Autre</option>
-                </select>
-              </div>
-              
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDocumentModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
-                >
-                  Ajouter
-                </button>
-              </div>
-            </form>
+        <form onSubmit={handleAddDiplome}>
+          <div className="mb-4">
+            <label htmlFor="diplomeId" className="block text-gray-700 mb-1">
+              Diplôme <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="diplomeId"
+              name="diplomeId"
+              value={diplomeForm.diplomeId}
+              onChange={handleDiplomeChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              required
+            >
+              <option value="">Sélectionner un diplôme</option>
+              {diplomes && diplomes.length > 0 ? (
+                diplomes.map(diplome => (
+                  <option key={diplome.id} value={diplome.id}>
+                    {diplome.titre} ({diplome.typeDiplome?.replace(/_/g, ' ') || 'Non spécifié'})
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>Aucun diplôme disponible</option>
+              )}
+            </select>
           </div>
-        </div>
-      );
-    };
+          
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="Description"
+              name="description"
+              value={diplomeForm.description}
+              onChange={handleDiplomeChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="dateObtention" className="block text-gray-700 mb-1">
+              Date d'obtention <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              id="dateObtention"
+              name="dateObtention"
+              value={diplomeForm.dateObtention}
+              onChange={handleDiplomeChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="observations" className="block text-gray-700 mb-1">
+              Observations
+            </label>
+            <textarea
+              id="observations"
+              name="observations"
+              value={diplomeForm.observations}
+              onChange={handleDiplomeChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              rows="3"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setShowDiplomeModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
+            >
+              Ajouter
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
     
     if (isEditMode && isLoading && !currentMilitaire) {
       return (
@@ -992,189 +967,144 @@ const MilitaireForm = () => {
             </div>
           </div>
                   
-          {/* Military Information Section */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-gray-700 border-b pb-2">
-              Informations militaires
-            </h2>                    
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label htmlFor="matricule" className="block text-gray-700 mb-1">
-                  Matricule <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="matricule"
-                  name="matricule"
-                  value={formData.matricule}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                  required
-                  disabled={isEditMode}
-                />
-                {isEditMode && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Le matricule ne peut pas être modifié.
-                  </p>
-                )}
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="categorie" className="block text-gray-700 mb-1">
-                  Catégorie <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="categorie"
-                  name="categorie"
-                  value={formData.categorie}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                  required
-                >
-                  <option value="">Sélectionner une catégorie</option>
-                  <option value="OFFICIER">Officier</option>
-                  <option value="SOUS_OFFICIER">Sous-Officier</option>
-                  <option value="SOLDAT">Soldat</option>
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="grade" className="block text-gray-700 mb-1">
-                  Grade <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="grade"
-                  name="grade"
-                  value={formData.grade}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                  required
-                >
-                  <option value="">Sélectionner un grade</option>
-                  {formData.categorie && gradesByCategory[formData.categorie] ? (
-                    gradesByCategory[formData.categorie].map(grade => (
-                      <option key={grade.value} value={grade.value}>
-                        {grade.label}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      {/* Show all grades if no category is selected */}
-                      {Object.values(gradesByCategory).flat().map(grade => (
-                        <option key={grade.value} value={grade.value}>
-                          {grade.label}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-              </div>
-              
-              {formData.categorie === 'OFFICIER' && (
-                <div className="form-group">
-                  <label htmlFor="categorieOfficier" className="block text-gray-700 mb-1">
-                    Catégorie d'officier
-                  </label>
-                  <select
-                    id="categorieOfficier"
-                    name="categorieOfficier"
-                    value={formData.categorieOfficier}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                  >
-                    <option value="">Sélectionner une catégorie</option>
-                    <option value="OFFICIER_SUPERIEUR">Officier Supérieur</option>
-                    <option value="OFFICIER_SUBALTERNE">Officier Subalterne</option>
-                  </select>
-                </div>
-              )}
-              
-              {formData.categorie === 'SOUS_OFFICIER' && (
-                <div className="form-group">
-                  <label htmlFor="categorieSousOfficier" className="block text-gray-700 mb-1">
-                    Catégorie de sous-officier
-                  </label>
-                  <select
-                    id="categorieSousOfficier"
-                    name="categorieSousOfficier"
-                    value={formData.categorieSousOfficier}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                  >
-                    <option value="">Sélectionner une catégorie</option>
-                    <option value="SOUS_OFFICIER_SUPERIEUR">Sous-Officier Supérieur</option>
-                    <option value="SOUS_OFFICIER_SUBALTERNE">Sous-Officier Subalterne</option>
-                  </select>
-                </div>
-              )}
-              
-              <div className="form-group">
-                <label htmlFor="groupeSanguin" className="block text-gray-700 mb-1">
-                  Groupe sanguin
-                </label>
-                <select
-                  id="groupeSanguin"
-                  name="groupeSanguin"
-                  value={formData.groupeSanguin}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                >
-                  <option value="">Sélectionner un groupe sanguin</option>
-                  <option value="A_POSITIF">A+</option>
-                  <option value="A_NEGATIF">A-</option>
-                  <option value="B_POSITIF">B+</option>
-                  <option value="B_NEGATIF">B-</option>
-                  <option value="AB_POSITIF">AB+</option>
-                  <option value="AB_NEGATIF">AB-</option>
-                  <option value="O_POSITIF">O+</option>
-                  <option value="O_NEGATIF">O-</option>
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="dateRecrutement" className="block text-gray-700 mb-1">
-                  Date de recrutement
-                </label>
-                <input
-                  type="date"
-                  id="dateRecrutement"
-                  name="dateRecrutement"
-                  value={formData.dateRecrutement}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="telephoneService" className="block text-gray-700 mb-1">
-                  Téléphone de service
-                </label>
-                <input
-                  type="tel"
-                  id="telephoneService"
-                  name="telephoneService"
-                  value={formData.telephoneService}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="dateDernierePromotion" className="block text-gray-700 mb-1">
-                  Date de dernière promotion
-                </label>
-                <input
-                  type="date"
-                  id="dateDernierePromotion"
-                  name="dateDernierePromotion"
-                  value={formData.dateDernierePromotion}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                />
-              </div>
-              
-            </div>
-          </div>
+   {/* Military Information Section - Simplified version */}
+<div className="mb-6">
+<h2 className="text-lg font-semibold mb-3 text-gray-700 border-b pb-2">
+  Informations militaires
+</h2>                    
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="form-group">
+    <label htmlFor="matricule" className="block text-gray-700 mb-1">
+      Matricule <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      id="matricule"
+      name="matricule"
+      value={formData.matricule}
+      onChange={handleChange}
+      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+      required
+      disabled={isEditMode}
+    />
+    {isEditMode && (
+      <p className="text-xs text-gray-500 mt-1">
+        Le matricule ne peut pas être modifié.
+      </p>
+    )}
+  </div>
+  
+  {/* Improved GradeSelect that automatically detects categories */}
+  <div className="form-group">
+    <label htmlFor="grade" className="block text-gray-700 mb-1">
+      Grade <span className="text-red-500">*</span>
+    </label>
+    <GradeSelect 
+      value={formData.grade}
+      onChange={handleChange}
+      disabled={false} 
+      />
+  </div>
+  
+  {/* Hidden fields to store auto-detected categories */}
+  <input type="hidden" name="categorie" value={formData.categorie} />
+  <input type="hidden" name="categorieOfficier" value={formData.categorieOfficier} />
+  <input type="hidden" name="categorieSousOfficier" value={formData.categorieSousOfficier} />
+  
+  {/* Display currently selected categories and subcategories as read-only info */}
+  {formData.grade && (
+    <div className="form-group col-span-2">
+      <label className="block text-gray-700 mb-1">
+        Catégorie
+      </label>
+      <div className="px-3 py-2 border rounded-lg bg-gray-50 text-gray-700">
+        <span className="font-medium">
+          {formData.categorie === 'OFFICIER' ? 'Officier' : 
+           formData.categorie === 'SOUS_OFFICIER' ? 'Sous-Officier' : 
+           formData.categorie === 'SOLDAT' ? 'Soldat' : 'Non définie'}
+        </span>
+        
+        {formData.categorieOfficier && (
+          <span className="ml-2">
+            ({formData.categorieOfficier === 'OFFICIER_SUPERIEUR' ? 'Supérieur' : 'Subalterne'})
+          </span>
+        )}
+        
+        {formData.categorieSousOfficier && (
+          <span className="ml-2">
+            ({formData.categorieSousOfficier === 'SOUS_OFFICIER_SUPERIEUR' ? 'Supérieur' : 'Subalterne'})
+          </span>
+        )}
+      </div>
+    </div>
+  )}
+  
+  <div className="form-group">
+    <label htmlFor="groupeSanguin" className="block text-gray-700 mb-1">
+      Groupe sanguin
+    </label>
+    <select
+      id="groupeSanguin"
+      name="groupeSanguin"
+      value={formData.groupeSanguin}
+      onChange={handleChange}
+      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+    >
+      <option value="">Sélectionner un groupe sanguin</option>
+      <option value="A_POSITIF">A+</option>
+      <option value="A_NEGATIF">A-</option>
+      <option value="B_POSITIF">B+</option>
+      <option value="B_NEGATIF">B-</option>
+      <option value="AB_POSITIF">AB+</option>
+      <option value="AB_NEGATIF">AB-</option>
+      <option value="O_POSITIF">O+</option>
+      <option value="O_NEGATIF">O-</option>
+    </select>
+  </div>
+  
+  <div className="form-group">
+    <label htmlFor="dateRecrutement" className="block text-gray-700 mb-1">
+      Date de recrutement
+    </label>
+    <input
+      type="date"
+      id="dateRecrutement"
+      name="dateRecrutement"
+      value={formData.dateRecrutement}
+      onChange={handleChange}
+      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+    />
+  </div>
+  
+  <div className="form-group">
+    <label htmlFor="telephoneService" className="block text-gray-700 mb-1">
+      Téléphone de service
+    </label>
+    <input
+      type="tel"
+      id="telephoneService"
+      name="telephoneService"
+      value={formData.telephoneService}
+      onChange={handleChange}
+      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+    />
+  </div>
+  
+  <div className="form-group">
+    <label htmlFor="dateDernierePromotion" className="block text-gray-700 mb-1">
+      Date de dernière promotion
+    </label>
+    <input
+      type="date"
+      id="dateDernierePromotion"
+      name="dateDernierePromotion"
+      value={formData.dateDernierePromotion}
+      onChange={handleChange}
+      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+    />
+  </div>
+</div>
+</div>
           
           {/* Situation Section */}
           <div className="mb-6">
@@ -1384,32 +1314,32 @@ const MilitaireForm = () => {
               <p className="text-gray-500 italic">Aucun diplôme ajouté</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tempDiplomes.map((diplome, index) => (
-                  <div key={diplome.id} className="border rounded-md p-3 relative">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDiplome(index)}
-                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                      title="Supprimer"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                    
-                    <h4 className="font-medium">
-                      {diplome.diplome?.titre || 'Diplôme'}
-                    </h4>
-                    <p className="text-sm text-gray-600">Institution: {diplome.institution}</p>
-                    <p className="text-sm text-gray-500">Obtenu le: {formatDate(diplome.dateObtention)}</p>
-                    {diplome.observations && (
-                      <p className="text-sm text-gray-500 mt-1">{diplome.observations}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+              {tempDiplomes.map((diplome, index) => (
+                <div key={diplome.id} className="border rounded-md p-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDiplome(index)}
+                    className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                    title="Supprimer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  
+                  <h4 className="font-medium">
+                    {diplome.diplome?.titre || 'Diplôme'}
+                  </h4>
+                  <p className="text-sm text-gray-600">Description: {diplome.description}</p>
+                  <p className="text-sm text-gray-500">Obtenu le: {formatDate(diplome.dateObtention)}</p>
+                  {diplome.observations && (
+                    <p className="text-sm text-gray-500 mt-1">{diplome.observations}</p>
+                  )}
+                </div>
+              ))}
           </div>
+                )}
+                </div>
           
           {/* Decorations Section */}
           <div className="mb-6">
@@ -1529,10 +1459,32 @@ const MilitaireForm = () => {
           </div>
         </form>
         
-        {/* Modals */}
-        <DiplomeModal />
-        <DecorationModal />
-        <DocumentModal />
+        
+{/* Modals */}
+<DiplomModal 
+showModal={showDiplomeModal}
+onClose={() => setShowDiplomeModal(false)}
+diplomeForm={diplomeForm}
+handleDiplomeChange={handleDiplomeChange}
+handleAddDiplome={handleAddDiplome}
+diplomes={diplomes}
+/>
+
+<DecorationModal 
+showModal={showDecorationModal}
+onClose={() => setShowDecorationModal(false)}
+decorationForm={decorationForm}
+handleDecorationChange={handleDecorationChange}
+handleAddDecoration={handleAddDecoration}
+/>
+
+<DocumentModal 
+showModal={showDocumentModal}
+onClose={() => setShowDocumentModal(false)}
+documentForm={documentForm}
+handleDocumentChange={handleDocumentChange}
+handleAddDocument={handleAddDocument}
+/>
       </div>
     );
   };
