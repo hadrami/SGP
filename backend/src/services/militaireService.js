@@ -170,7 +170,12 @@ async function getMilitaireById(id) {
       },
       arme: true,
       specialite: true,
-      decorations: true,
+      // Replace decorations with militaireDecorations
+      militaireDecorations: {
+        include: {
+          decoration: true
+        }
+      },
       notations: {
         orderBy: {
           date: 'desc'
@@ -254,8 +259,8 @@ async function createMilitaire(militaireData) {
     matricule,
     grade,
     categorie,
-    categorieOfficier,
-    categorieSousOfficier,
+    categorieOfficier, // This could be null
+    categorieSousOfficier, // This could be null
     groupeSanguin,
     dateRecrutement,
     telephoneService,
@@ -264,10 +269,10 @@ async function createMilitaire(militaireData) {
     situationDetail,
     situationDepuis,
     situationJusqua,
-    fonctionId,
-    sousUniteId,
-    armeId,
-    specialiteId
+    fonctionId,    // Add these variables to the destructuring
+    sousUniteId,   // Add these variables to the destructuring
+    armeId,        // Add these variables to the destructuring
+    specialiteId   // Add these variables to the destructuring
   } = militaireData;
   
   // Vérifier si un militaire avec ce matricule existe déjà
@@ -335,13 +340,23 @@ async function createMilitaire(militaireData) {
     }
   }
   
-  // Sous-catégorie d'officier ou sous-officier selon le grade
+  // Build the category data with explicit null values when needed
   let categoryData = {};
   
-  if (categorie === 'OFFICIER' && categorieOfficier) {
+  // Only include categorieOfficier if appropriate
+  if (categorie === 'OFFICIER') {
     categoryData.categorieOfficier = categorieOfficier;
-  } else if (categorie === 'SOUS_OFFICIER' && categorieSousOfficier) {
+    categoryData.categorieSousOfficier = null; // Explicitly set to null for OFFICIER
+  } 
+  // Only include categorieSousOfficier if appropriate
+  else if (categorie === 'SOUS_OFFICIER') {
+    categoryData.categorieOfficier = null; // Explicitly set to null for SOUS_OFFICIER
     categoryData.categorieSousOfficier = categorieSousOfficier;
+  } 
+  // For SOLDAT, both should be null
+  else if (categorie === 'SOLDAT') {
+    categoryData.categorieOfficier = null;
+    categoryData.categorieSousOfficier = null;
   }
   
   // Utiliser une transaction pour créer à la fois le personnel et le militaire
@@ -361,27 +376,39 @@ async function createMilitaire(militaireData) {
       }
     });
     
-    // 2. Créer le militaire associé
+    // 2. Créer le militaire associé - create the data object first
+    let militaireCreateData = {
+      matricule,
+      grade,
+      categorie,
+      ...categoryData, // Using the processed category data that's now defined
+      groupeSanguin,
+      dateRecrutement: dateRecrutement ? new Date(dateRecrutement) : null,
+      telephoneService,
+      dateDernierePromotion: dateDernierePromotion ? new Date(dateDernierePromotion) : null,
+      situation: situation || 'PRESENT',
+      situationDetail,
+      situationDepuis: situationDepuis ? new Date(situationDepuis) : new Date(),
+      situationJusqua: situationJusqua ? new Date(situationJusqua) : null,
+      personnelId: personnel.id
+    };
+
+    // Only add these fields if they are valid values
+    if (fonctionId && fonctionId.trim() !== '') {
+      militaireCreateData.fonctionId = fonctionId;
+    }
+    if (sousUniteId && sousUniteId.trim() !== '') {
+      militaireCreateData.sousUniteId = sousUniteId;
+    }
+    if (armeId && armeId.trim() !== '') {
+      militaireCreateData.armeId = armeId;
+    }
+    if (specialiteId && specialiteId.trim() !== '') {
+      militaireCreateData.specialiteId = specialiteId;
+    }
+    
     const militaire = await tx.militaire.create({
-      data: {
-        matricule,
-        grade,
-        categorie,
-        ...categoryData,
-        groupeSanguin,
-        dateRecrutement: dateRecrutement ? new Date(dateRecrutement) : null,
-        telephoneService,
-        dateDernierePromotion: dateDernierePromotion ? new Date(dateDernierePromotion) : null,
-        situation: situation || 'PRESENT',
-        situationDetail,
-        situationDepuis: situationDepuis ? new Date(situationDepuis) : new Date(),
-        situationJusqua: situationJusqua ? new Date(situationJusqua) : null,
-        fonctionId,
-        sousUniteId,
-        armeId,
-        specialiteId,
-        personnelId: personnel.id
-      },
+      data: militaireCreateData,
       include: {
         personnel: {
           include: {
@@ -417,7 +444,6 @@ async function createMilitaire(militaireData) {
     return militaire;
   });
 }
-
 /**
  * Met à jour un militaire existant avec toutes ses données
  * @param {string} id - L'ID du militaire à mettre à jour
@@ -1101,6 +1127,109 @@ async function getAllDiplomes() {
   });
 }
 
+/**
+ * Récupère toutes les décorations disponibles
+ * @returns {Promise<Array>} Liste des décorations
+ */
+async function getAllDecorations() {
+  return await prisma.decoration.findMany({
+    orderBy: {
+      titre: 'asc'
+    }
+  });
+}
+
+/**
+ * Récupère une décoration par ID
+ * @param {string} id - L'ID de la décoration
+ * @returns {Promise<Object>} La décoration trouvée
+ */
+async function getDecorationById(id) {
+  return await prisma.decoration.findUnique({
+    where: { id }
+  });
+}
+
+/**
+ * Ajoute une décoration à un militaire
+ * @param {string} militaireId - L'ID du militaire
+ * @param {Object} decorationData - Les données de la décoration
+ * @returns {Promise<Object>} La relation militaire-décoration créée
+ */
+async function addMilitaireDecoration(militaireId, decorationData) {
+  const { decorationId, description, dateObtention, observations } = decorationData;
+  
+  // Vérifier que le militaire existe
+  const militaire = await prisma.militaire.findUnique({
+    where: { id: militaireId }
+  });
+  
+  if (!militaire) {
+    throw new Error(`Le militaire avec l'ID ${militaireId} n'existe pas`);
+  }
+  
+  // Vérifier que la décoration existe
+  const decoration = await prisma.decoration.findUnique({
+    where: { id: decorationId }
+  });
+  
+  if (!decoration) {
+    throw new Error(`La décoration avec l'ID ${decorationId} n'existe pas`);
+  }
+  
+  // Créer la relation militaire-décoration
+  const militaireDecoration = await prisma.militaireDecoration.create({
+    data: {
+      militaireId,
+      decorationId,
+      description,
+      dateObtention: dateObtention ? new Date(dateObtention) : new Date(),
+      observations
+    },
+    include: {
+      decoration: true
+    }
+  });
+  
+  return militaireDecoration;
+}
+
+/**
+ * Supprime une décoration d'un militaire
+ * @param {string} militaireId - L'ID du militaire
+ * @param {string} decorationId - L'ID de la relation militaire-décoration à supprimer
+ * @returns {Promise<Object>} Message de confirmation
+ */
+async function deleteMilitaireDecoration(militaireId, decorationId) {
+  // Vérifier que le militaire existe
+  const militaire = await prisma.militaire.findUnique({
+    where: { id: militaireId },
+    include: {
+      militaireDecorations: true
+    }
+  });
+  
+  if (!militaire) {
+    throw new Error(`Le militaire avec l'ID ${militaireId} n'existe pas`);
+  }
+  
+  // Vérifier que la décoration appartient au militaire
+  const decorationLink = militaire.militaireDecorations.find(
+    d => d.id === decorationId
+  );
+  
+  if (!decorationLink) {
+    throw new Error(`La décoration avec l'ID ${decorationId} n'appartient pas à ce militaire`);
+  }
+  
+  // Supprimer la relation
+  await prisma.militaireDecoration.delete({
+    where: { id: decorationId }
+  });
+  
+  return { message: 'Décoration supprimée avec succès' };
+}
+
 module.exports = {
   getAllMilitaires,
   getMilitaireById,
@@ -1116,5 +1245,9 @@ module.exports = {
   addStageMilitaire,
   addDiplome,
   deleteDiplome,
-  getAllDiplomes
+  getAllDiplomes,
+  getAllDecorations,
+  getDecorationById,
+  addMilitaireDecoration,
+  deleteMilitaireDecoration
 };

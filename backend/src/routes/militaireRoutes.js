@@ -177,66 +177,97 @@ module.exports = async function(fastify, opts) {
   });
   
   // Créer un nouveau militaire
-  fastify.post('/', {
-    schema: {
-      body: {
-        type: 'object',
-        required: ['nom', 'prenom', 'nni', 'matricule', 'grade', 'categorie'],
-        properties: {
-          // Données du personnel
-          nom: { type: 'string' },
-          prenom: { type: 'string' },
-          dateNaissance: { type: 'string', format: 'date' },
-          lieuNaissance: { type: 'string' },
-          telephone: { type: 'string' },
-          email: { type: 'string', format: 'email' },
-          nni: { type: 'string' },
-          institutId: { type: 'string' },
-          
-          // Données spécifiques au militaire
-          matricule: { type: 'string' },
-          grade: { type: 'string', enum: ['SOUS_LIEUTENANT', 'LIEUTENANT', 'CAPITAINE', 'COMMANDANT', 'LIEUTENANT_COLONEL', 'COLONEL', 'GENERAL', 'SERGENT', 'SERGENT_CHEF', 'ADJUDANT', 'ADJUDANT_CHEF', 'SOLDAT_DEUXIEME_CLASSE', 'SOLDAT_PREMIERE_CLASSE', 'CAPORAL'] },
-          categorie: { type: 'string', enum: ['OFFICIER', 'SOUS_OFFICIER', 'SOLDAT'] },
-          categorieOfficier: { type: 'string', enum: ['OFFICIER_SUPERIEUR', 'OFFICIER_SUBALTERNE'] },
-          categorieSousOfficier: { type: 'string', enum: ['SOUS_OFFICIER_SUPERIEUR', 'SOUS_OFFICIER_SUBALTERNE'] },
-          groupeSanguin: { type: 'string', enum: ['A_POSITIF', 'A_NEGATIF', 'B_POSITIF', 'B_NEGATIF', 'AB_POSITIF', 'AB_NEGATIF', 'O_POSITIF', 'O_NEGATIF'] },
-          dateRecrutement: { type: 'string', format: 'date' },
-          telephoneService: { type: 'string' },
-          dateDernierePromotion: { type: 'string', format: 'date' },
-          situation: { type: 'string', enum: ['PRESENT', 'ABSENT', 'MISSION', 'CONGE', 'HOSPITALISATION', 'FORMATION', 'DETACHEMENT', 'RETRAITE', 'DISPONIBILITE', 'DESERTEUR', 'AUTRE'] },
-          situationDetail: { type: 'string' },
-          situationDepuis: { type: 'string', format: 'date' },
-          situationJusqua: { type: 'string', format: 'date' },
-          fonctionId: { type: 'string' },
-          sousUniteId: { type: 'string' },
-          armeId: { type: 'string' },
-          specialiteId: { type: 'string' }
-        }
-      }
-    },
-    preHandler: [fastify.authenticate],
-    handler: async (request, reply) => {
-      try {
-        const militaireData = request.body;
+// Update the POST route schema in militaireRoutes.js
+fastify.post('/', {
+  schema: {
+    body: {
+      type: 'object',
+      required: ['nom', 'prenom', 'nni', 'matricule', 'grade', 'categorie'],
+      properties: {
+        // Données du personnel
+        nom: { type: 'string' },
+        prenom: { type: 'string' },
+        dateNaissance: { type: 'string', format: 'date' },
+        lieuNaissance: { type: 'string' },
+        telephone: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        nni: { type: 'string' },
+        uniteId: { type: 'string' },
         
-        const nouveauMilitaire = await militaireService.createMilitaire(militaireData);
-        
-        reply.code(201);
-        return nouveauMilitaire;
-      } catch (error) {
-        fastify.log.error(error);
-        
-        if (error.message && error.message.includes('existe déjà')) {
-          reply.code(409);
-          return { error: error.message };
-        }
-        
-        reply.code(500);
-        return { error: 'Une erreur est survenue lors de la création du militaire' };
+        // Données spécifiques au militaire
+        matricule: { type: 'string' },
+        grade: { 
+          type: 'string', 
+          enum: [
+            // Officiers Supérieurs
+            'COMMANDANT', 'LIEUTENANT_COLONEL', 'COLONEL', 'GENERAL',
+            'MEDECIN_COMMANDANT', 'MEDECIN_LIEUTENANT_COLONEL', 'MEDECIN_COLONEL', 'MEDECIN_GENERAL',
+            'INTENDANT_COMMANDANT', 'INTENDANT_LIEUTENANT_COLONEL', 'INTENDANT_COLONEL', 'INTENDANT_GENERAL',
+            'COMMANDANT_INGENIEUR', 'LIEUTENANT_COLONEL_INGENIEUR', 'COLONEL_INGENIEUR', 'GENERAL_INGENIEUR',
+            
+            // Officiers Subalternes
+            'SOUS_LIEUTENANT', 'LIEUTENANT', 'CAPITAINE',
+            'LIEUTENANT_INGENIEUR', 'CAPITAINE_INGENIEUR',
+            'INTENDANT_SOUS_LIEUTENANT', 'INTENDANT_LIEUTENANT', 'INTENDANT_CAPITAINE',
+            'MEDECIN_LIEUTENANT', 'MEDECIN_CAPITAINE',
+            
+            // Sous-Officiers Supérieurs
+            'ADJUDANT', 'ADJUDANT_CHEF',
+            
+            // Sous-Officiers Subalternes
+            'SERGENT', 'SERGENT_CHEF',
+            
+            // Soldats
+            'SOLDAT_DEUXIEME_CLASSE', 'SOLDAT_PREMIERE_CLASSE', 'CAPORAL'
+          ] 
+        },
+        categorie: { type: 'string', enum: ['OFFICIER', 'SOUS_OFFICIER', 'SOLDAT'] },
+        categorieOfficier: { 
+          type: ['string', 'null'], // Allow both string and null
+          enum: ['OFFICIER_SUPERIEUR', 'OFFICIER_SUBALTERNE', null] // Include null in enum
+        },
+        categorieSousOfficier: { 
+          type: ['string', 'null'], // Allow both string and null
+          enum: ['SOUS_OFFICIER_SUPERIEUR', 'SOUS_OFFICIER_SUBALTERNE', null] // Include null in enum
+        },
+        groupeSanguin: { type: 'string', enum: ['A_POSITIF', 'A_NEGATIF', 'B_POSITIF', 'B_NEGATIF', 'AB_POSITIF', 'AB_NEGATIF', 'O_POSITIF', 'O_NEGATIF'] },
+        dateRecrutement: { type: 'string', format: 'date' },
+        telephoneService: { type: 'string' },
+        dateDernierePromotion: { type: 'string', format: 'date' },
+        situation: { type: 'string', enum: ['PRESENT', 'ABSENT', 'MISSION', 'CONGE', 'HOSPITALISATION', 'FORMATION', 'DETACHEMENT', 'RETRAITE', 'DISPONIBILITE', 'DESERTEUR', 'AUTRE'] },
+        situationDetail: { type: 'string' },
+        situationDepuis: { type: 'string', format: 'date' },
+        situationJusqua: { type: 'string', format: 'date' },
+        fonctionId: { type: 'string' },
+        sousUniteId: { type: 'string' },
+        armeId: { type: 'string' },
+        specialiteId: { type: 'string' }
       }
     }
-  });
-  
+  },
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const militaireData = request.body;
+      
+      const nouveauMilitaire = await militaireService.createMilitaire(militaireData);
+      
+      reply.code(201);
+      return nouveauMilitaire;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('existe déjà')) {
+        reply.code(409);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de la création du militaire' };
+    }
+  }
+})
+
   // Ajouter un diplôme à un militaire
   fastify.post('/:id/diplomes', {
     schema: {
@@ -283,50 +314,7 @@ module.exports = async function(fastify, opts) {
       }
     }
   });
-  
-  // Ajouter une décoration à un militaire
-  fastify.post('/:id/decorations', {
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: {
-          id: { type: 'string' }
-        }
-      },
-      body: {
-        type: 'object',
-        required: ['titre'],
-        properties: {
-          titre: { type: 'string' },
-          description: { type: 'string' },
-          dateObtention: { type: 'string', format: 'date' }
-        }
-      }
-    },
-    preHandler: [fastify.authenticate],
-    handler: async (request, reply) => {
-      try {
-        const { id } = request.params;
-        const decorationData = request.body;
-        
-        const decoration = await militaireService.addDecoration(id, decorationData);
-        
-        reply.code(201);
-        return decoration;
-      } catch (error) {
-        fastify.log.error(error);
-        
-        if (error.message && error.message.includes('n\'existe pas')) {
-          reply.code(404);
-          return { error: error.message };
-        }
-        
-        reply.code(500);
-        return { error: 'Une erreur est survenue lors de l\'ajout de la décoration' };
-      }
-    }
-  });
+ 
   
   // Ajouter une notation à un militaire
   fastify.post('/:id/notations', {
@@ -502,70 +490,101 @@ module.exports = async function(fastify, opts) {
   });
   
   // Mettre à jour un militaire
-  fastify.put('/:id', {
-    schema: {
-      params: {
-        type: 'object',
-        required: ['id'],
-        properties: {
-          id: { type: 'string' }
-        }
-      },
-      body: {
-        type: 'object',
-        properties: {
-          // Données du personnel
-          nom: { type: 'string' },
-          prenom: { type: 'string' },
-          dateNaissance: { type: 'string', format: 'date' },
-          lieuNaissance: { type: 'string' },
-          telephone: { type: 'string' },
-          email: { type: 'string', format: 'email' },
-          nni: { type: 'string' },
-          institutId: { type: 'string' },
-          
-          // Données spécifiques au militaire
-          grade: { type: 'string', enum: ['SOUS_LIEUTENANT', 'LIEUTENANT', 'CAPITAINE', 'COMMANDANT', 'LIEUTENANT_COLONEL', 'COLONEL', 'GENERAL', 'SERGENT', 'SERGENT_CHEF', 'ADJUDANT', 'ADJUDANT_CHEF', 'SOLDAT_DEUXIEME_CLASSE', 'SOLDAT_PREMIERE_CLASSE', 'CAPORAL'] },
-          categorie: { type: 'string', enum: ['OFFICIER', 'SOUS_OFFICIER', 'SOLDAT'] },
-          categorieOfficier: { type: 'string', enum: ['OFFICIER_SUPERIEUR', 'OFFICIER_SUBALTERNE'] },
-          categorieSousOfficier: { type: 'string', enum: ['SOUS_OFFICIER_SUPERIEUR', 'SOUS_OFFICIER_SUBALTERNE'] },
-          groupeSanguin: { type: 'string', enum: ['A_POSITIF', 'A_NEGATIF', 'B_POSITIF', 'B_NEGATIF', 'AB_POSITIF', 'AB_NEGATIF', 'O_POSITIF', 'O_NEGATIF'] },
-          dateRecrutement: { type: 'string', format: 'date' },
-          telephoneService: { type: 'string' },
-          dateDernierePromotion: { type: 'string', format: 'date' },
-          situation: { type: 'string', enum: ['PRESENT', 'ABSENT', 'MISSION', 'CONGE', 'HOSPITALISATION', 'FORMATION', 'DETACHEMENT', 'RETRAITE', 'DISPONIBILITE', 'DESERTEUR', 'AUTRE'] },
-          situationDetail: { type: 'string' },
-          situationDepuis: { type: 'string', format: 'date' },
-          situationJusqua: { type: 'string', format: 'date' },
-          fonctionId: { type: 'string' },
-          sousUniteId: { type: 'string' },
-          armeId: { type: 'string' },
-          specialiteId: { type: 'string' }
-        }
+// Update the PUT route schema in militaireRoutes.js
+fastify.put('/:id', {
+  schema: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: { type: 'string' }
       }
     },
-    preHandler: [fastify.authenticate],
-    handler: async (request, reply) => {
-      try {
-        const { id } = request.params;
-        const militaireData = request.body;
+    body: {
+      type: 'object',
+      properties: {
+        // Données du personnel
+        nom: { type: 'string' },
+        prenom: { type: 'string' },
+        dateNaissance: { type: 'string', format: 'date' },
+        lieuNaissance: { type: 'string' },
+        telephone: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        nni: { type: 'string' },
+        uniteId: { type: 'string' },
         
-        const militaireMisAJour = await militaireService.updateMilitaire(id, militaireData);
-        
-        return militaireMisAJour;
-      } catch (error) {
-        fastify.log.error(error);
-        
-        if (error.message && error.message.includes('n\'existe pas')) {
-          reply.code(404);
-          return { error: error.message };
-        }
-        
-        reply.code(500);
-        return { error: 'Une erreur est survenue lors de la mise à jour du militaire' };
+        // Données spécifiques au militaire
+        grade: { 
+          type: 'string', 
+          enum: [
+            // Officiers Supérieurs
+            'COMMANDANT', 'LIEUTENANT_COLONEL', 'COLONEL', 'GENERAL',
+            'MEDECIN_COMMANDANT', 'MEDECIN_LIEUTENANT_COLONEL', 'MEDECIN_COLONEL', 'MEDECIN_GENERAL',
+            'INTENDANT_COMMANDANT', 'INTENDANT_LIEUTENANT_COLONEL', 'INTENDANT_COLONEL', 'INTENDANT_GENERAL',
+            'COMMANDANT_INGENIEUR', 'LIEUTENANT_COLONEL_INGENIEUR', 'COLONEL_INGENIEUR', 'GENERAL_INGENIEUR',
+            
+            // Officiers Subalternes
+            'SOUS_LIEUTENANT', 'LIEUTENANT', 'CAPITAINE',
+            'LIEUTENANT_INGENIEUR', 'CAPITAINE_INGENIEUR',
+            'INTENDANT_SOUS_LIEUTENANT', 'INTENDANT_LIEUTENANT', 'INTENDANT_CAPITAINE',
+            'MEDECIN_LIEUTENANT', 'MEDECIN_CAPITAINE',
+            
+            // Sous-Officiers Supérieurs
+            'ADJUDANT', 'ADJUDANT_CHEF',
+            
+            // Sous-Officiers Subalternes
+            'SERGENT', 'SERGENT_CHEF',
+            
+            // Soldats
+            'SOLDAT_DEUXIEME_CLASSE', 'SOLDAT_PREMIERE_CLASSE', 'CAPORAL'
+          ] 
+        },
+        categorie: { type: 'string', enum: ['OFFICIER', 'SOUS_OFFICIER', 'SOLDAT'] },
+        categorieOfficier: { 
+          type: ['string', 'null'], 
+          enum: ['OFFICIER_SUPERIEUR', 'OFFICIER_SUBALTERNE', null] 
+        },
+        categorieSousOfficier: { 
+          type: ['string', 'null'], 
+          enum: ['SOUS_OFFICIER_SUPERIEUR', 'SOUS_OFFICIER_SUBALTERNE', null] 
+        },
+        groupeSanguin: { type: 'string', enum: ['A_POSITIF', 'A_NEGATIF', 'B_POSITIF', 'B_NEGATIF', 'AB_POSITIF', 'AB_NEGATIF', 'O_POSITIF', 'O_NEGATIF'] },
+        dateRecrutement: { type: 'string', format: 'date' },
+        telephoneService: { type: 'string' },
+        dateDernierePromotion: { type: 'string', format: 'date' },
+        situation: { type: 'string', enum: ['PRESENT', 'ABSENT', 'MISSION', 'CONGE', 'HOSPITALISATION', 'FORMATION', 'DETACHEMENT', 'RETRAITE', 'DISPONIBILITE', 'DESERTEUR', 'AUTRE'] },
+        situationDetail: { type: 'string' },
+        situationDepuis: { type: 'string', format: 'date' },
+        situationJusqua: { type: 'string', format: 'date' },
+        fonctionId: { type: 'string' },
+        sousUniteId: { type: 'string' },
+        armeId: { type: 'string' },
+        specialiteId: { type: 'string' }
       }
     }
-  });
+  },
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const militaireData = request.body;
+      
+      const militaireMisAJour = await militaireService.updateMilitaire(id, militaireData);
+      
+      return militaireMisAJour;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de la mise à jour du militaire' };
+    }
+  }
+})
 
   // Supprimer un diplôme d'un militaire
   fastify.delete('/:id/diplomes/:diplomeId', {
@@ -640,4 +659,135 @@ module.exports = async function(fastify, opts) {
       }
     }
   });
+
+// Récupérer toutes les décorations disponibles
+fastify.get('/decorations', {
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const decorations = await militaireService.getAllDecorations();
+      return decorations;
+    } catch (error) {
+      fastify.log.error(error);
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de la récupération des décorations' };
+    }
+  }
+});
+
+// Récupérer une décoration par ID
+fastify.get('/decorations/:id', {
+  schema: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: { type: 'string' }
+      }
+    }
+  },
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const decoration = await militaireService.getDecorationById(id);
+      
+      if (!decoration) {
+        reply.code(404);
+        return { error: `Aucune décoration trouvée avec l'ID ${id}` };
+      }
+      
+      return decoration;
+    } catch (error) {
+      fastify.log.error(error);
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de la récupération de la décoration' };
+    }
+  }
+});
+
+// Ajouter une décoration à un militaire
+fastify.post('/:id/decorations', {
+  schema: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: { type: 'string' }
+      }
+    },
+    body: {
+      type: 'object',
+      required: ['decorationId', 'dateObtention'],
+      properties: {
+        decorationId: { type: 'string' },
+        description: { type: 'string' },
+        dateObtention: { type: 'string', format: 'date' },
+        observations: { type: 'string' }
+      }
+    }
+  },
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const decorationData = request.body;
+      
+      const decoration = await militaireService.addMilitaireDecoration(id, decorationData);
+      
+      reply.code(201);
+      return decoration;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de l\'ajout de la décoration' };
+    }
+  }
+});
+
+// Supprimer une décoration d'un militaire
+fastify.delete('/:id/decorations/:decorationId', {
+  schema: {
+    params: {
+      type: 'object',
+      required: ['id', 'decorationId'],
+      properties: {
+        id: { type: 'string' },
+        decorationId: { type: 'string' }
+      }
+    }
+  },
+  preHandler: [fastify.authenticate],
+  handler: async (request, reply) => {
+    try {
+      const { id, decorationId } = request.params;
+      
+      const result = await militaireService.deleteMilitaireDecoration(id, decorationId);
+      
+      return result;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      if (error.message && error.message.includes('n\'appartient pas')) {
+        reply.code(400);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Une erreur est survenue lors de la suppression de la décoration' };
+    }
+  }
+});
+
 };
