@@ -1032,7 +1032,7 @@ async function addStageMilitaire(militaireId, stageData) {
 async function addDiplome(militaireId, diplomeData) {
   const {
     diplomeId,
-    institution,
+    description,
     dateObtention,
     observations
   } = diplomeData;
@@ -1061,7 +1061,7 @@ async function addDiplome(militaireId, diplomeData) {
   // Créer le diplôme du personnel
   const personnelDiplome = await prisma.personnelDiplome.create({
     data: {
-      institution,
+      description,
       dateObtention: new Date(dateObtention),
       observations,
       personnelId: militaire.personnelId,
@@ -1074,7 +1074,6 @@ async function addDiplome(militaireId, diplomeData) {
   
   return personnelDiplome;
 }
-
 /**
  * Supprime un diplôme d'un militaire
  * @param {string} militaireId - L'ID du militaire

@@ -714,6 +714,8 @@ const formatDate = useCallback((dateString) => {
   }).format(date);
 }, []);
 
+
+
 // Handle form submission
 const handleSubmit = useCallback(async (e) => {
   e.preventDefault();
@@ -857,44 +859,72 @@ const handleSubmit = useCallback(async (e) => {
       }
     }
   };
-  
-  try {
-    if (isEditMode) {
-      const result = await dispatch(updateMilitaire({ 
-        id, 
-        militaireData: submitData 
-      })).unwrap();
-      
-      // Upload documents if any
-      if (tempDocuments.some(doc => doc.file)) {
-        await uploadDocuments(result.id);
-      }
-      
-      // Add new notations and stages
-      await addNotations(result.id);
-      await addStages(result.id);
-      
-      alert('Militaire mis à jour avec succès');
-      navigate(`/militaires/${result.id}`);
-    } else {
-      const result = await dispatch(createMilitaire(submitData)).unwrap();
-      
-      // Upload documents if any
-      if (tempDocuments.some(doc => doc.file)) {
-        await uploadDocuments(result.id);
-      }
-      
-      // Add notations and stages for newly created militaire
-      await addNotations(result.id);
-      await addStages(result.id);
-      
-      alert('Militaire créé avec succès');
-      navigate(`/militaires/${result.id}`);
-    }
-  } catch (error) {
-    console.error('Error saving militaire:', error);
-    alert(`Erreur: ${error.error || 'Une erreur est survenue lors de l\'enregistrement'}`);
+
+  // Define function to add diplomas
+const addDiplomas = async (militaireId) => {
+  for (const diplome of tempDiplomes) {
+    // Only add diplomas that don't already exist on the server
+    if (diplome.id.startsWith('temp_')) {
+      try {
+       // In the addDiplomas function, change this line:
+await dispatch(addDiplome({
+  militaireId,
+  diplomeData: {
+    diplomeId: diplome.diplomeId,
+    description: diplome.description,  // This is correct now
+    dateObtention: diplome.dateObtention,
+    observations: diplome.observations
   }
+})).unwrap();
+      } catch (error) {
+        console.error('Error adding diplome:', error);
+        // Continue with other diplomas even if one fails
+      }
+    }
+  }
+};
+  
+
+
+try {
+  if (isEditMode) {
+    const result = await dispatch(updateMilitaire({ 
+      id, 
+      militaireData: submitData 
+    })).unwrap();
+    
+    // Upload documents if any
+    if (tempDocuments.some(doc => doc.file)) {
+      await uploadDocuments(result.id);
+    }
+    
+    // Add new diplomas, notations and stages
+    await addDiplomas(result.id);
+    await addNotations(result.id);
+    await addStages(result.id);
+    
+    alert('Militaire mis à jour avec succès');
+    navigate(`/militaires/${result.id}`);
+  } else {
+    const result = await dispatch(createMilitaire(submitData)).unwrap();
+    
+    // Upload documents if any
+    if (tempDocuments.some(doc => doc.file)) {
+      await uploadDocuments(result.id);
+    }
+    
+    // Add diplomas, notations and stages for newly created militaire
+    await addDiplomas(result.id);
+    await addNotations(result.id);
+    await addStages(result.id);
+    
+    alert('Militaire créé avec succès');
+    navigate(`/militaires/${result.id}`);
+  }
+} catch (error) {
+  console.error('Error saving militaire:', error);
+  alert(`Erreur: ${error.error || 'Une erreur est survenue lors de l\'enregistrement'}`);
+}
 }, [
   formData, 
   tempDiplomes, 

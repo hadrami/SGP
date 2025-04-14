@@ -21,7 +21,11 @@ const DiplomModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full">
+      <div 
+        className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full"
+        onClick={(e) => e.stopPropagation()}
+        id="diplome-form-container"
+      >
         <h2 className="text-xl font-bold mb-4">Ajouter un diplôme</h2>
         
         <form onSubmit={handleAddDiplome}>
@@ -59,7 +63,7 @@ const DiplomModal = ({
               id={formKeys.description}
               key={formKeys.description}
               name="description"
-              value={diplomeForm.description}
+              value={diplomeForm.description || ""}
               onChange={handleDiplomeChange}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
               rows="3"
@@ -76,7 +80,7 @@ const DiplomModal = ({
               id={formKeys.dateObtention}
               key={formKeys.dateObtention}
               name="dateObtention"
-              value={diplomeForm.dateObtention}
+              value={diplomeForm.dateObtention || new Date().toISOString().split('T')[0]}
               onChange={handleDiplomeChange}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
               required
@@ -91,7 +95,7 @@ const DiplomModal = ({
               id={formKeys.observations}
               key={formKeys.observations}
               name="observations"
-              value={diplomeForm.observations}
+              value={diplomeForm.observations || ""}
               onChange={handleDiplomeChange}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
               rows="3"

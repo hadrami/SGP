@@ -45,161 +45,166 @@ const MilitaireDetail = () => {
   }, [dispatch, id]);
 
   // Add Diplome Modal Component
-  const AddDiplomeModal = ({ isOpen, onClose, militaireId }) => {
-    const dispatch = useDispatch();
-    const { diplomes = [], isLoading } = useSelector(state => state.militaires);
-    const [formData, setFormData] = useState({
-      diplomeId: '',
-      institution: '',
-      dateObtention: new Date().toISOString().split('T')[0],
-      observations: ''
-    });
+// Add Diplome Modal Component for MilitaireDetail.jsx
+const AddDiplomeModal = ({ isOpen, onClose, militaireId }) => {
+  const dispatch = useDispatch();
+  const { diplomes = [], isLoading } = useSelector(state => state.militaires);
+  const [formData, setFormData] = useState({
+    diplomeId: '',
+    description: '',
+    dateObtention: new Date().toISOString().split('T')[0],
+    observations: ''
+  });
 
-    // Reset form when modal opens/closes
-    useEffect(() => {
-      if (isOpen) {
-        setFormData({
-          diplomeId: '',
-          institution: '',
-          dateObtention: new Date().toISOString().split('T')[0],
-          observations: ''
-        });
-      }
-    }, [isOpen]);
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        diplomeId: '',
+        description: '',
+        dateObtention: new Date().toISOString().split('T')[0],
+        observations: ''
+      });
+    }
+  }, [isOpen]);
 
-    const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData({ ...formData, [name]: value });
-    };
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      
-      if (!formData.diplomeId) {
-        alert('Veuillez sélectionner un diplôme');
-        return;
-      }
-
-      try {
-        await dispatch(addDiplome({
-          militaireId,
-          diplomeData: formData
-        })).unwrap();
-        
-        onClose();
-        alert('Diplôme ajouté avec succès');
-      } catch (error) {
-        console.error('Error adding diploma:', error);
-        alert(`Erreur: ${error.error || 'Une erreur est survenue lors de l\'ajout du diplôme'}`);
-      }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full">
-          <h2 className="text-xl font-bold mb-4">Ajouter un diplôme</h2>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label htmlFor="diplomeId" className="block text-gray-700 mb-1">
-                Diplôme <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="diplomeId"
-                name="diplomeId"
-                value={formData.diplomeId}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-                disabled={isLoading}
-              >
-                <option value="">
-                  {isLoading ? "Chargement des diplômes..." : "Sélectionner un diplôme"}
-                </option>
-                {diplomes && diplomes.length > 0 ? (
-                  diplomes.map(diplome => (
-                    <option key={diplome.id} value={diplome.id}>
-                      {diplome.titre} ({diplome.typeDiplome?.replace(/_/g, ' ') || 'Non spécifié'})
-                    </option>
-                  ))
-                ) : (
-                  <option value="" disabled>Aucun diplôme disponible</option>
-                )}
-              </select>
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="institution" className="block text-gray-700 mb-1">
-                Institution <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="institution"
-                name="institution"
-                value={formData.institution}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="dateObtention" className="block text-gray-700 mb-1">
-                Date d'obtention <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                id="dateObtention"
-                name="dateObtention"
-                value={formData.dateObtention}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="observations" className="block text-gray-700 mb-1">
-                Observations
-              </label>
-              <textarea
-                id="observations"
-                name="observations"
-                value={formData.observations}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-                rows="3"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-                    Traitement...
-                  </>
-                ) : 'Ajouter'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.diplomeId || !formData.description) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      await dispatch(addDiplome({
+        militaireId,
+        diplomeData: formData
+      })).unwrap();
+      
+      onClose();
+      alert('Diplôme ajouté avec succès');
+    } catch (error) {
+      console.error('Error adding diploma:', error);
+      alert(`Erreur: ${error.error || 'Une erreur est survenue lors de l\'ajout du diplôme'}`);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div 
+        className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto w-full"
+        onClick={(e) => e.stopPropagation()}
+        id="diplome-form-container"
+      >
+        <h2 className="text-xl font-bold mb-4">Ajouter un diplôme</h2>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="diplomeId" className="block text-gray-700 mb-1">
+              Diplôme <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="diplomeId"
+              name="diplomeId"
+              value={formData.diplomeId}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              required
+              disabled={isLoading}
+            >
+              <option value="">
+                {isLoading ? "Chargement des diplômes..." : "Sélectionner un diplôme"}
+              </option>
+              {diplomes && diplomes.length > 0 ? (
+                diplomes.map(diplome => (
+                  <option key={diplome.id} value={diplome.id}>
+                    {diplome.titre} ({diplome.typeDiplome?.replace(/_/g, ' ') || 'Non spécifié'})
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>Aucun diplôme disponible</option>
+              )}
+            </select>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-gray-700 mb-1">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              rows="3"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="dateObtention" className="block text-gray-700 mb-1">
+              Date d'obtention <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              id="dateObtention"
+              name="dateObtention"
+              value={formData.dateObtention}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="observations" className="block text-gray-700 mb-1">
+              Observations
+            </label>
+            <textarea
+              id="observations"
+              name="observations"
+              value={formData.observations}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
+              rows="3"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-[#40916c] text-white rounded-md hover:bg-[#2d6a4f]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                  Traitement...
+                </>
+              ) : 'Ajouter'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
   // Add Decoration Modal Component
   const AddDecorationModal = ({ isOpen, onClose, militaireId }) => {

@@ -250,8 +250,6 @@ const militaireApi = {
     }
   },
 
-  // Add these functions to your existing militaire.api.js file
-
   // Récupérer tous les diplômes disponibles
   getAllDiplomes: async () => {
     console.log('Fetching all available diplomas');
