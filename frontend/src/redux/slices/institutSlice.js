@@ -70,17 +70,6 @@ export const fetchInstitutMilitaires = createAsyncThunk(
   }
 );
 
-export const fetchInstitutCivils = createAsyncThunk(
-  'instituts/fetchInstitutCivils',
-  async ({ id, params = {} }, { rejectWithValue }) => {
-    try {
-      return await institutApi.getInstitutCivils(id, params);
-    } catch (error) {
-      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération des civils de l\'institut' });
-    }
-  }
-);
-
 export const fetchInstitutStats = createAsyncThunk(
   'instituts/fetchInstitutStats',
   async (id, { rejectWithValue }) => {
@@ -99,7 +88,6 @@ const institutSlice = createSlice({
     instituts: [],
     currentInstitut: null,
     institutMilitaires: [],
-    institutCivils: [],
     stats: null,
     isLoading: false,
     error: null,
@@ -227,24 +215,6 @@ const institutSlice = createSlice({
       .addCase(fetchInstitutMilitaires.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.error || 'Erreur lors de la récupération des militaires de l\'institut';
-      })
-      
-      // Cas pour fetchInstitutCivils
-      .addCase(fetchInstitutCivils.pending, (state) => {
-        state.isLoading = true;
-      })
-      .addCase(fetchInstitutCivils.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.error = null;
-        if (action.payload.data) {
-          state.institutCivils = action.payload.data;
-        } else {
-          state.institutCivils = action.payload;
-        }
-      })
-      .addCase(fetchInstitutCivils.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload?.error || 'Erreur lors de la récupération des civils de l\'institut';
       })
       
       // Cas pour fetchInstitutStats

@@ -27,6 +27,66 @@ export const fetchUniteById = createAsyncThunk(
   }
 );
 
+export const fetchUniteByCode = createAsyncThunk(
+  'unites/fetchUniteByCode',
+  async (code, { rejectWithValue }) => {
+    try {
+      const response = await uniteApi.getUniteByCode(code);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération de l\'unité par code' });
+    }
+  }
+);
+
+export const fetchUnitesByType = createAsyncThunk(
+  'unites/fetchUnitesByType',
+  async (type, { rejectWithValue }) => {
+    try {
+      const response = await uniteApi.getUnitesByType(type);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération des unités par type' });
+    }
+  }
+);
+
+export const fetchUnitePersonnel = createAsyncThunk(
+  'unites/fetchUnitePersonnel',
+  async ({ uniteId, page = 1, limit = 10, typePersonnel }, { rejectWithValue }) => {
+    try {
+      const response = await uniteApi.getUnitePersonnel(uniteId, { page, limit, typePersonnel });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération du personnel de l\'unité' });
+    }
+  }
+);
+
+export const fetchUniteStats = createAsyncThunk(
+  'unites/fetchUniteStats',
+  async (uniteId, { rejectWithValue }) => {
+    try {
+      const response = await uniteApi.getUniteStats(uniteId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération des statistiques de l\'unité' });
+    }
+  }
+);
+
+export const fetchUniteSousUnites = createAsyncThunk(
+  'unites/fetchUniteSousUnites',
+  async (uniteId, { rejectWithValue }) => {
+    try {
+      const response = await uniteApi.getUniteSousUnites(uniteId);
+      return { uniteId, sousUnites: response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération des sous-unités' });
+    }
+  }
+);
+
 export const createUnite = createAsyncThunk(
   'unites/createUnite',
   async (uniteData, { rejectWithValue }) => {
@@ -69,6 +129,18 @@ const uniteSlice = createSlice({
   initialState: {
     unites: [],
     currentUnite: null,
+    unitesByType: {},
+    personnel: {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      }
+    },
+    sousUnites: [],
+    stats: null,
     isLoading: false,
     error: null,
     pagination: {
@@ -104,7 +176,7 @@ const uniteSlice = createSlice({
         if (action.payload.data) {
           // Si l'API renvoie des données paginées
           state.unites = action.payload.data;
-          state.pagination = action.payload.meta || state.pagination;
+          state.pagination = action.payload.pagination || state.pagination;
         } else {
           // Si l'API renvoie juste un tableau
           state.unites = action.payload;
@@ -127,6 +199,80 @@ const uniteSlice = createSlice({
       .addCase(fetchUniteById.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.error || 'Erreur lors de la récupération de l\'unité';
+      })
+      
+      // Cas pour fetchUniteByCode
+      .addCase(fetchUniteByCode.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUniteByCode.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.error = null;
+        state.currentUnite = action.payload;
+      })
+      .addCase(fetchUniteByCode.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.error || 'Erreur lors de la récupération de l\'unité par code';
+      })
+      
+      // Cas pour fetchUnitesByType
+      .addCase(fetchUnitesByType.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUnitesByType.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.error = null;
+        // Stocker les unités par type
+        if (action.meta && action.meta.arg) {
+          state.unitesByType[action.meta.arg] = action.payload;
+        }
+      })
+      .addCase(fetchUnitesByType.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.error || 'Erreur lors de la récupération des unités par type';
+      })
+      
+      // Cas pour fetchUnitePersonnel
+      .addCase(fetchUnitePersonnel.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUnitePersonnel.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.error = null;
+        state.personnel.data = action.payload.data;
+        state.personnel.pagination = action.payload.pagination;
+      })
+      .addCase(fetchUnitePersonnel.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.error || 'Erreur lors de la récupération du personnel';
+      })
+      
+      // Cas pour fetchUniteStats
+      .addCase(fetchUniteStats.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUniteStats.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.error = null;
+        state.stats = action.payload;
+      })
+      .addCase(fetchUniteStats.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.error || 'Erreur lors de la récupération des statistiques';
+      })
+      
+      // Cas pour fetchUniteSousUnites
+      .addCase(fetchUniteSousUnites.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchUniteSousUnites.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.error = null;
+        state.sousUnites = action.payload.sousUnites;
+      })
+      .addCase(fetchUniteSousUnites.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload?.error || 'Erreur lors de la récupération des sous-unités';
       })
       
       // Cas pour createUnite

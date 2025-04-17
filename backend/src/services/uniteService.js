@@ -106,6 +106,39 @@ async function getUniteByCode(code) {
 }
 
 /**
+ * Récupère les unités par type
+ * @param {string} type - Le type d'unité à récupérer (INSTITUT, DCT, PC)
+ * @returns {Promise<Array>} La liste des unités du type spécifié
+ */
+async function getUnitesByType(type) {
+  console.log(`Fetching unites of type: ${type}`);
+  
+  // Vérifier si le type est valide
+  if (!['INSTITUT', 'DCT', 'PC'].includes(type)) {
+    throw new Error(`Le type d'unité '${type}' n'est pas valide. Types valides: INSTITUT, DCT, PC`);
+  }
+  
+  const unites = await prisma.unite.findMany({
+    where: { type },
+    include: {
+      institut: type === 'INSTITUT' ? true : undefined,
+      dct: type === 'DCT' ? true : undefined,
+      pc: type === 'PC' ? true : undefined,
+      directeur: {
+        select: {
+          id: true,
+          name: true,
+          identifier: true
+        }
+      }
+    }
+  });
+  
+  console.log(`Found ${unites.length} unites of type ${type}`);
+  return unites;
+}
+
+/**
  * Récupère les sous-unités d'une unité
  * @param {string} uniteId - L'ID de l'unité
  * @returns {Promise<Array>} La liste des sous-unités de l'unité
@@ -555,6 +588,7 @@ module.exports = {
   getAllUnites,
   getUniteById,
   getUniteByCode,
+  getUnitesByType,
   getSousUnitesByUnite,
   getUnitePersonnel,
   getUniteStats,

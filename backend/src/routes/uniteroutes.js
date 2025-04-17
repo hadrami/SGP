@@ -16,8 +16,8 @@ module.exports = async function(fastify, opts) {
               id: { type: 'string' },
               nom: { type: 'string' },
               code: { type: 'string' },
-              description: { type: 'string', nullable: true },
-              institutId: { type: 'string', nullable: true }
+              type: { type: 'string' },
+              description: { type: 'string', nullable: true }
             }
           }
         }
@@ -46,33 +46,6 @@ module.exports = async function(fastify, opts) {
         properties: {
           id: { type: 'string' }
         }
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            nom: { type: 'string' },
-            code: { type: 'string' },
-            description: { type: 'string', nullable: true },
-            institutId: { type: 'string', nullable: true },
-            institut: {
-              type: 'object',
-              nullable: true,
-              properties: {
-                id: { type: 'string' },
-                nom: { type: 'string' },
-                code: { type: 'string' }
-              }
-            }
-          }
-        },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
       }
     },
     preHandler: fastify.authenticate
@@ -94,6 +67,138 @@ module.exports = async function(fastify, opts) {
     }
   });
 
+  // Récupérer une unité par code
+  fastify.get('/code/:code', {
+    schema: {
+      description: 'Récupérer une unité par son code',
+      tags: ['unites'],
+      params: {
+        type: 'object',
+        required: ['code'],
+        properties: {
+          code: { type: 'string' }
+        }
+      }
+    },
+    preHandler: fastify.authenticate
+  }, async (request, reply) => {
+    try {
+      const { code } = request.params;
+      const unite = await uniteService.getUniteByCode(code);
+      
+      if (!unite) {
+        reply.code(404);
+        return { error: 'Unité non trouvée' };
+      }
+      
+      return unite;
+    } catch (error) {
+      fastify.log.error(error);
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Récupérer les unités par type
+  fastify.get('/type/:type', {
+    schema: {
+      description: 'Récupérer toutes les unités d\'un type spécifique',
+      tags: ['unites'],
+      params: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string', enum: ['INSTITUT', 'DCT', 'PC'] }
+        }
+      }
+    },
+    preHandler: fastify.authenticate
+  }, async (request, reply) => {
+    try {
+      const { type } = request.params;
+      const unites = await uniteService.getUnitesByType(type);
+      return unites;
+    } catch (error) {
+      fastify.log.error(error);
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Récupérer le personnel d'une unité
+  fastify.get('/:id/personnel', {
+    schema: {
+      description: 'Récupérer le personnel d\'une unité',
+      tags: ['unites', 'personnel'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' }
+        }
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', default: 1 },
+          limit: { type: 'integer', default: 10 },
+          typePersonnel: { type: 'string', enum: ['MILITAIRE', 'CIVIL_PROFESSEUR', 'CIVIL_ETUDIANT', 'CIVIL_EMPLOYE'] }
+        }
+      }
+    },
+    preHandler: fastify.authenticate
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const { page, limit, typePersonnel } = request.query;
+      
+      const personnel = await uniteService.getUnitePersonnel(id, { page, limit, typePersonnel });
+      return personnel;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Récupérer les statistiques d'une unité
+  fastify.get('/:id/stats', {
+    schema: {
+      description: 'Récupérer les statistiques d\'une unité',
+      tags: ['unites', 'stats'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' }
+        }
+      }
+    },
+    preHandler: fastify.authenticate
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const stats = await uniteService.getUniteStats(id);
+      return stats;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
   // Récupérer les sous-unités d'une unité
   fastify.get('/:id/sous-unites', {
     schema: {
@@ -104,27 +209,6 @@ module.exports = async function(fastify, opts) {
         required: ['id'],
         properties: {
           id: { type: 'string' }
-        }
-      },
-      response: {
-        200: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              nom: { type: 'string' },
-              code: { type: 'string' },
-              description: { type: 'string', nullable: true },
-              uniteId: { type: 'string' }
-            }
-          }
-        },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
         }
       }
     },
@@ -140,6 +224,146 @@ module.exports = async function(fastify, opts) {
       
       if (error.message && error.message.includes('n\'existe pas')) {
         reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Créer une nouvelle unité
+  fastify.post('/', {
+    schema: {
+      description: 'Créer une nouvelle unité',
+      tags: ['unites'],
+      body: {
+        type: 'object',
+        required: ['nom', 'code', 'type'],
+        properties: {
+          nom: { type: 'string' },
+          code: { type: 'string' },
+          description: { type: 'string' },
+          type: { type: 'string', enum: ['INSTITUT', 'DCT', 'PC'] },
+          directeurId: { type: 'integer' },
+          // INSTITUT specific fields
+          emplacement: { type: 'string' },
+          anneeEtude: { type: 'integer' },
+          specialite: { type: 'string' },
+          // DCT specific fields
+          domaine: { type: 'string' },
+          niveau: { type: 'string' },
+          // PC specific fields
+          typePC: { type: 'string' },
+          zoneOperation: { type: 'string' }
+        }
+      }
+    },
+    preHandler: [fastify.authenticate, fastify.requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const uniteData = request.body;
+      const newUnite = await uniteService.createUnite(uniteData);
+      
+      reply.code(201);
+      return newUnite;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('existe déjà')) {
+        reply.code(409);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Mettre à jour une unité
+  fastify.put('/:id', {
+    schema: {
+      description: 'Mettre à jour une unité',
+      tags: ['unites'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          nom: { type: 'string' },
+          description: { type: 'string' },
+          directeurId: { type: 'integer' },
+          // INSTITUT specific fields
+          emplacement: { type: 'string' },
+          anneeEtude: { type: 'integer' },
+          specialite: { type: 'string' },
+          // DCT specific fields
+          domaine: { type: 'string' },
+          niveau: { type: 'string' },
+          // PC specific fields
+          typePC: { type: 'string' },
+          zoneOperation: { type: 'string' }
+        }
+      }
+    },
+    preHandler: [fastify.authenticate, fastify.requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const uniteData = request.body;
+      
+      const updatedUnite = await uniteService.updateUnite(id, uniteData);
+      
+      return updatedUnite;
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      reply.code(500);
+      return { error: 'Erreur interne du serveur' };
+    }
+  });
+
+  // Supprimer une unité
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Supprimer une unité',
+      tags: ['unites'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string' }
+        }
+      }
+    },
+    preHandler: [fastify.authenticate, fastify.requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      
+      await uniteService.deleteUnite(id);
+      
+      reply.code(204).send();
+    } catch (error) {
+      fastify.log.error(error);
+      
+      if (error.message && error.message.includes('n\'existe pas')) {
+        reply.code(404);
+        return { error: error.message };
+      }
+      
+      if (error.message && error.message.includes('Impossible de supprimer')) {
+        reply.code(400);
         return { error: error.message };
       }
       

@@ -14,6 +14,7 @@ import MilitaireDetail from './pages/militaires/MilitaireDetail';
 import MilitaireForm from './pages/militaires/MilitaireForm';
 import MilitairesByCategory from './pages/militaires/MilitairesByCategory';
 import MilitairesPrintPage from './pages/militaires/MilitairesPrintPage';
+import UniteDetail from './pages/unites/UniteDetail';
 import './App.css';
 
 // Loading component for cleaner code
@@ -98,6 +99,13 @@ const App = () => {
           <Route path="militaires/edit/:id" element={<MilitaireForm />} />
           <Route path="militaires/categorie/:category" element={<MilitairesByCategory />} />
           <Route path="/militaires/print" element={<MilitairesPrintPage />} />
+          {/* Generic route that will handle all institutes, directions, and PC */}
+          <Route path="/:type/:code" element={<UniteDetail />} />
+          {/* You could also have specific routes if needed */}
+          <Route path="/instituts/:code" element={<UniteDetail />} />
+          <Route path="/directions/:code" element={<UniteDetail />} />
+          <Route path="/pc/:code" element={<UniteDetail />} />
+  
           {/* Catch-all route */}
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Route>
