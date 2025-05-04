@@ -447,8 +447,12 @@ async function getUnitePersonnel({
     skip,
     take: limit,
     include: {
-      unite: true
-    },
+  unite: true,
+  militaire: true,
+  etudiant: true,
+  employe: true,
+  professeur: true
+},
     orderBy: {
       nom: 'asc'
     }

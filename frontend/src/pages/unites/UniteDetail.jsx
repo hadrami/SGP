@@ -1,436 +1,193 @@
 // src/pages/unites/UniteDetail.jsx
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useParams, Link }               from 'react-router-dom';
+import { useDispatch, useSelector }      from 'react-redux';
 import {
-  fetchUniteById,
   fetchUniteByCode,
-  fetchUnitePersonnel,
-  deleteUnite
+  fetchUnitePersonnel
 } from '../../redux/slices/uniteSlice';
-import Loader from '../../components/common/Loader';
+import Loader     from '../../components/common/Loader';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import {
   EyeIcon,
   PencilSquareIcon,
   TrashIcon,
   HomeIcon,
-  UserPlusIcon,
-  PrinterIcon
+  UserPlusIcon
 } from '@heroicons/react/24/outline';
-import { printUnitePersonnel } from '../../utils/PrintUtils';
 
 export default function UniteDetail() {
   const { code } = useParams();
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
-  // UI state
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [unite, setUnite] = useState(null);
-  const [personnel, setPersonnel] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0
-  });
+  // Redux state
+  const {
+    currentUnite,
+    personnel: { data, pagination },
+    personnelLoading,
+    personnelError
+  } = useSelector(state => state.unites);
+
+  // Local UI state
   const [typeFilter, setTypeFilter] = useState('');
+  const [page, setPage]             = useState(1);
 
-  // Load unit and personnel whenever code, page, limit, or filter change
+  // Load unit metadata when `code` changes
   useEffect(() => {
-    const loadUnite = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    if (code) dispatch(fetchUniteByCode(code));
+  }, [code, dispatch]);
 
-        // 1) Fetch unit by ID or code
-        let uniteData;
-        try {
-          uniteData = await dispatch(fetchUniteById(code)).unwrap();
-        } catch {
-          uniteData = await dispatch(fetchUniteByCode(code)).unwrap();
-        }
-        setUnite(uniteData);
-
-        // 2) Fetch personnel with current pagination and type filter
-        const params = {
-          uniteId: uniteData.id,
-          page: pagination.page,
-          limit: pagination.limit
-        };
-        if (typeFilter) {
-          params.typePersonnel = typeFilter;
-        }
-        const personnelData = await dispatch(fetchUnitePersonnel(params)).unwrap();
-        setPersonnel(personnelData.data || []);
-        setPagination(personnelData.pagination || pagination);
-
-        setLoading(false);
-      } catch (err) {
-        console.error('Error loading unite data:', err);
-        setError(err.message || 'Erreur lors du chargement des données');
-        setLoading(false);
-      }
-    };
-
-    if (code) {
-      loadUnite();
+  // Load personnel when unit, page, or filter changes
+  useEffect(() => {
+    if (currentUnite?.id) {
+      dispatch(fetchUnitePersonnel({
+        uniteId:       currentUnite.id,
+        page,
+        limit:         10,
+        typePersonnel: typeFilter || undefined
+      }));
     }
-  }, [code, dispatch, pagination.page, pagination.limit, typeFilter]);
-
-  const handlePageChange = newPage => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-  };
+  }, [currentUnite?.id, page, typeFilter, dispatch]);
 
   const handleFilterChange = e => {
     setTypeFilter(e.target.value);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPage(1);
   };
+  const handlePrevPage = () => setPage(p => Math.max(p - 1, 1));
+  const handleNextPage = () => setPage(p => Math.min(p + 1, pagination.totalPages));
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
+  const formatText = txt => txt ? txt.replace(/_/g, ' ') : '-';
 
-  const confirmDelete = async () => {
-    try {
-      await dispatch(deleteUnite(unite.id)).unwrap();
-      setShowDeleteConfirm(false);
-      navigate('/unites');
-    } catch (err) {
-      console.error('Error deleting unite:', err);
-      setError(err.message || 'Erreur lors de la suppression de l\'unité');
-      setShowDeleteConfirm(false);
-    }
-  };
-
-  const handlePrint = () => {
-    if (isPrinting || personnel.length === 0) return;
-    setIsPrinting(true);
-    try {
-      printUnitePersonnel(personnel, unite, pagination);
-    } catch (err) {
-      console.error('Error printing personnel list:', err);
-    } finally {
-      setTimeout(() => setIsPrinting(false), 2000);
-    }
-  };
-
-  const formatPersonnelType = type => {
-    if (!type) return '-';
-    return type.replace('CIVIL_', '').replace(/_/g, ' ');
-  };
-
-  if (loading) return <Loader />;
-  if (error) return <ErrorAlert message={error} />;
-  if (!unite) return <ErrorAlert message="Unité non trouvée" />;
+  if (personnelLoading) return <Loader />;
+  if (personnelError)   return <ErrorAlert message={personnelError} />;
+  if (!currentUnite)    return <ErrorAlert message="Unité non trouvée" />;
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      {/* Top actions bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#40916c] mb-4 md:mb-0">
-          Détails de l'Unité
-        </h1>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/unites"
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors flex items-center"
-          >
-            <HomeIcon className="w-5 h-5 mr-2" />
-            Dashboard
-          </Link>
-          <button
-            onClick={handlePrint}
-            disabled={isPrinting || personnel.length === 0}
-            className={`bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 flex items-center ${
-              isPrinting || personnel.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            <PrinterIcon className="w-5 h-5 mr-2" />
-            Imprimer
-          </button>
-        
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Breadcrumb/Header */}
+      <div className="flex items-center text-gray-700 space-x-2">
+        <Link to="/unites" className="hover:text-gray-900">
+          <HomeIcon className="w-6 h-6" />
+        </Link>
+        <span className="text-lg">/</span>
+        <h1 className="text-2xl font-semibold">{currentUnite.code}</h1>
+      </div>
+
+      {/* Unit Details Card */}
+      <div className="bg-white shadow-md rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <p><span className="font-semibold">Nom :</span> {currentUnite.nom}</p>
+          <p><span className="font-semibold">Type :</span> {currentUnite.type}</p>
+          {currentUnite.description && (
+            <p><span className="font-semibold">Description :</span> {currentUnite.description}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          {currentUnite.institut && (
+            <>
+              <p><span className="font-semibold">Emplacement :</span> {currentUnite.institut.emplacement}</p>
+              <p><span className="font-semibold">Année d'étude :</span> {currentUnite.institut.anneeEtude || 'N/A'}</p>
+            </>
+          )}
+          {currentUnite.dct && (
+            <>
+              <p><span className="font-semibold">Domaine :</span> {currentUnite.dct.domaine}</p>
+              <p><span className="font-semibold">Niveau :</span> {currentUnite.dct.niveau}</p>
+            </>
+          )}
+          {currentUnite.pc && (
+            <>
+              <p><span className="font-semibold">Zone d'opération :</span> {currentUnite.pc.zoneOperation}</p>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Unite details card */}
-      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold text-[#40916c] mb-2">
-          {unite.nom} ({unite.code})
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-gray-600">
-              <span className="font-semibold">Type :</span> {unite.type}
-            </p>
-            {unite.institut && (
-              <>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Emplacement :</span> {unite.institut.emplacement}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Année d'étude :</span> {unite.institut.anneeEtude || 'N/A'}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Spécialité :</span> {unite.institut.specialite || 'N/A'}
-                </p>
-              </>
-            )}
-            {unite.dct && (
-              <>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Domaine :</span> {unite.dct.domaine || 'N/A'}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Niveau :</span> {unite.dct.niveau || 'N/A'}
-                </p>
-              </>
-            )}
-            {unite.pc && (
-              <>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Type PC :</span> {unite.pc.typePC || 'N/A'}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">Zone d'opération :</span> {unite.pc.zoneOperation || 'N/A'}
-                </p>
-              </>
-            )}
-          </div>
-          <div>
-            <p className="text-gray-600 font-semibold">Description :</p>
-            <p className="text-gray-600">
-              {unite.description || 'Aucune description disponible'}
-            </p>
-          </div>
+      {/* Filter/Add Controls */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+        <div className="flex items-center space-x-2">
+          <label className="font-medium">Filtrer :</label>
+          <select
+            value={typeFilter}
+            onChange={handleFilterChange}
+            className="border rounded p-2"
+          >
+            <option value="">Tous</option>
+            <option value="MILITAIRE">Militaires</option>
+            <option value="CIVIL_ETUDIANT">Étudiants</option>
+            <option value="CIVIL_EMPLOYE">Employés</option>
+            <option value="CIVAL_PROFESSEUR">Professeurs</option>
+          </select>
         </div>
-      </div>
-
-      {/* Personnel header and add button */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-[#40916c]">Personnel</h2>
         <Link
-          to={`/militaires/new?uniteId=${unite.id}`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+          to={`/militaires/new?uniteId=${currentUnite.id}`}
+          className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           <UserPlusIcon className="w-5 h-5 mr-2" />
-          Ajouter un militaire
+          Ajouter
         </Link>
       </div>
 
-      {/* Filter dropdown */}
-      <div className="flex items-center space-x-4 mb-4">
-        <label className="font-semibold">Filtrer par type :</label>
-        <select
-          value={typeFilter}
-          onChange={handleFilterChange}
-          className="border p-2 rounded"
-        >
-          <option value="">Tous types</option>
-          <option value="MILITAIRE">Militaires</option>
-          <option value="CIVIL_ETUDIANT">Étudiants</option>
-          <option value="CIVIL_EMPLOYE">Employés</option>
-          <option value="CIVIL_PROFESSEUR">Professeurs</option>
-        </select>
-      </div>
-
-      {/* Personnel table */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        {personnel.length > 0 ? (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nom
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prénom
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Détails
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {personnel.map(person => (
-                    <tr key={person.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {person.nom}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {person.prenom}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          person.typePersonnel === 'MILITAIRE' ? 'bg-green-100 text-green-800' :
-                          person.typePersonnel === 'CIVIL_PROFESSEUR' ? 'bg-blue-100 text-blue-800' :
-                          person.typePersonnel === 'CIVIL_ETUDIANT' ? 'bg-yellow-100 text-yellow-800' :
-                          person.typePersonnel === 'CIVIL_EMPLOYE' ? 'bg-purple-100 text-purple-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {formatPersonnelType(person.typePersonnel)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {person.typePersonnel === 'MILITAIRE' && person.militaire && (
-                          <>
-                            {person.militaire.grade.replace(/_/g, ' ')}
-                            {person.militaire.matricule && ` - ${person.militaire.matricule}`}
-                          </>
-                        )}
-                        {person.typePersonnel === 'CIVIL_PROFESSEUR' && person.professeur && (
-                          <>{person.professeur.specialite}</>
-                        )}
-                        {person.typePersonnel === 'CIVIL_ETUDIANT' && person.etudiant && (
-                          <>
-                            {person.etudiant.matricule}
-                            {person.etudiant.anneeEtude && ` - ${person.etudiant.anneeEtude}e année`}
-                          </>
-                        )}
-                        {person.typePersonnel === 'CIVIL_EMPLOYE' && person.employe && (
-                          <>{person.employe.position}</>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
-                        <div className="flex justify-end space-x-1">
-                          {person.typePersonnel === 'MILITAIRE' && person.militaire && (
-                            <Link
-                              to={`/militaires/${person.militaire.id}`}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full"
-                              title="Voir"
-                            >
-                              <EyeIcon className="h-5 w-5" />
-                            </Link>
-                          )}
-                          {person.typePersonnel === 'MILITAIRE' && person.militaire && (
-                            <Link
-                              to={`/militaires/edit/${person.militaire.id}`}
-                              className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-full"
-                              title="Modifier"
-                            >
-                              <PencilSquareIcon className="h-5 w-5" />
-                            </Link>
-                          )}
-                          {person.typePersonnel === 'MILITAIRE' && person.militaire && (
-                            <button
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-full"
-                              title="Supprimer"
-                              onClick={() => {/* handle delete personnel */}}
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          )}  
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {pagination.totalPages > 1 && (
-              <div className="flex justify-center p-4 border-t border-gray-200">
-                <button
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                  className={`px-3 py-1 rounded ${
-                    pagination.page === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  Précédent
-                </button>
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pageNum => (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`w-8 h-8 mx-1 rounded flex items-center justify-center ${
-                      pageNum === pagination.page ? 'bg-[#40916c] text-white' : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-                <button
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages}
-                  className={`px-3 py-1 rounded ${
-                    pagination.page === pagination.totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  Suivant
-                </button>
-              </div>
+      {/* Personnel Table */}
+      <div className="overflow-x-auto bg-white shadow-sm rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {['Matricule','Nom','Prénom','Grade','Catégorie','Situation','Unité','Actions'].map(col => (
+                <th
+                  key={col}
+                  className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"
+                >{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {data.length > 0 ? data.map(person => (
+              <tr key={person.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2 text-sm text-gray-900">{person.militaire?.matricule || '-'}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.nom}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.prenom}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.militaire?.grade ? formatText(person.militaire.grade) : '-'}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.typePersonnel ? formatText(person.typePersonnel) : '-'}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.militaire?.situation ? formatText(person.militaire.situation) : '-'}</td>
+                <td className="px-4 py-2 text-sm text-gray-500">{person.unite?.code}</td>
+                <td className="px-4 py-2 text-sm text-gray-500 text-right">
+                  <div className="inline-flex space-x-2">
+                    <Link to={`/militaires/${person.militaire?.id}`} className="p-1 text-blue-600 hover:bg-blue-50 rounded-full" title="Voir">
+                      <EyeIcon className="w-5 h-5" />
+                    </Link>
+                    <Link to={`/militaires/edit/${person.militaire?.id}`} className="p-1 text-yellow-600 hover:bg-yellow-50 rounded-full" title="Modifier">
+                      <PencilSquareIcon className="w-5 h-5" />
+                    </Link>
+                    <button className="p-1 text-red-600 hover:bg-red-50 rounded-full" title="Supprimer">
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )) : (
+              <tr>
+                <td colSpan="8" className="px-4 py-4 text-center text-gray-500">
+                  Aucun personnel trouvé
+                </td>
+              </tr>
             )}
-          </>
-        ) : (
-          <p className="text-gray-500 text-center py-6">
-            Aucun personnel trouvé pour cette unité
-          </p>
-        )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Confirmer la suppression</h2>
-            <p className="mb-6">
-              Êtes-vous sûr de vouloir supprimer l'unité{' '}
-              <span className="font-semibold">{unite.nom}</span>? Cette action est irréversible.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center mt-4 space-x-2">
+          <button onClick={handlePrevPage} disabled={page === 1} className="px-3 py-1 border rounded disabled:opacity-50">
+            Précédent
+          </button>
+          <span className="px-2 py-1 text-sm text-gray-700">{page} / {pagination.totalPages}</span>
+          <button onClick={handleNextPage} disabled={page === pagination.totalPages} className="px-3 py-1 border rounded disabled:opacity-50">
+            Suivant
+          </button>
         </div>
       )}
-
-      {/* Tooltip CSS */}
-      <style jsx="true">{`
-        .tooltip {
-          visibility: hidden;
-          position: absolute;
-          top: -30px;
-          left: 50%;
-          transform: translateX(-50%);
-          background-color: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 3px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          white-space: nowrap;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        [title]:hover::after {
-          content: attr(title);
-          visibility: visible;
-          opacity: 1;
-        }
-      `}</style>
     </div>
   );
 }
