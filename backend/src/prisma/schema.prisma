@@ -175,22 +175,28 @@ model Diplome {
 }
 
 // Junction table for personnel-diploma relationship
+
 model PersonnelDiplome {
   id            String   @id @default(uuid())
-  institution   String
+  // institution   String    ←─── removed
   dateObtention DateTime
   observations  String?
+  description   String?
+
 
   // Relations
   personnelId String
   personnel   Personnel @relation("PersonnelToDiplomes", fields: [personnelId], references: [id])
 
   diplomeId String
-  diplome   Diplome @relation(fields: [diplomeId], references: [id])
+  diplome   Diplome   @relation(fields: [diplomeId], references: [id])
 
-  @@unique([personnelId, diplomeId, institution, dateObtention])
+  // Update your unique constraint to drop `institution`:
+  @@unique([personnelId, diplomeId, dateObtention])
   @@map("personnel_diplomes")
 }
+
+
 
 // Table pour les décorations militaires
 model Decoration {

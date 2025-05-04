@@ -863,7 +863,6 @@ const AddDiplomeModal = ({ isOpen, onClose, militaireId }) => {
                             ) : (
                               <h4 className="font-medium text-gray-800">Diplôme</h4>
                             )}
-                            <p className="text-sm text-gray-600">Institution: {diplomePers.institution || 'Non spécifiée'}</p>
                             <p className="text-xs text-gray-500 mt-1">
                               Obtenu le {formatDate(diplomePers.dateObtention)}
                             </p>

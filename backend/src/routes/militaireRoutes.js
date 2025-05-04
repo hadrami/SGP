@@ -280,10 +280,10 @@ fastify.post('/', {
       },
       body: {
         type: 'object',
-        required: ['diplomeId', 'institution', 'dateObtention'],
+        required: ['diplomeId', 'description', 'dateObtention'],
         properties: {
           diplomeId: { type: 'string' },
-          institution: { type: 'string' },
+          description: { type: 'string' },
           dateObtention: { type: 'string', format: 'date' },
           observations: { type: 'string' }
         }

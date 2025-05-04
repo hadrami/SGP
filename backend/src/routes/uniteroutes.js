@@ -125,24 +125,46 @@ module.exports = async function(fastify, opts) {
     }
   });
 
-  // Récupérer le personnel d'une unité
-  fastify.get('/:id/personnel', {
+   // Récupérer le personnel d'une unité
+   fastify.get('/:id/personnel', {
     schema: {
       description: 'Récupérer le personnel d\'une unité',
       tags: ['unites', 'personnel'],
       params: {
         type: 'object',
         required: ['id'],
-        properties: {
-          id: { type: 'string' }
-        }
+        properties: { id: { type: 'string' } }
       },
       querystring: {
         type: 'object',
         properties: {
           page: { type: 'integer', default: 1 },
           limit: { type: 'integer', default: 10 },
-          typePersonnel: { type: 'string', enum: ['MILITAIRE', 'CIVIL_PROFESSEUR', 'CIVIL_ETUDIANT', 'CIVIL_EMPLOYE'] }
+          search: { type: 'string' },
+          typePersonnel: { type: 'string' }
+        }
+      },
+     response: {
+      200: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: true    // ← allow all fields
+            }
+          },
+            pagination: {
+              type: 'object',
+              properties: {
+                total: { type: 'integer' },
+                page: { type: 'integer' },
+                limit: { type: 'integer' },
+                totalPages: { type: 'integer' }
+              }
+            }
+          }
         }
       }
     },
@@ -150,20 +172,19 @@ module.exports = async function(fastify, opts) {
   }, async (request, reply) => {
     try {
       const { id } = request.params;
-      const { page, limit, typePersonnel } = request.query;
-      
-      const personnel = await uniteService.getUnitePersonnel(id, { page, limit, typePersonnel });
-      return personnel;
+      const { page, limit, search, typePersonnel } = request.query;
+      const result = await uniteService.getUnitePersonnel({
+        uniteId: id,
+        page,
+        limit,
+        search,
+        typePersonnel
+      });
+      return result;
     } catch (error) {
       fastify.log.error(error);
-      
-      if (error.message && error.message.includes('n\'existe pas')) {
-        reply.code(404);
-        return { error: error.message };
-      }
-      
       reply.code(500);
-      return { error: 'Erreur interne du serveur' };
+      return { error: 'Erreur lors de la récupération du personnel' };
     }
   });
 

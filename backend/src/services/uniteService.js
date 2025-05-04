@@ -417,75 +417,45 @@ async function deleteUnite(id) {
  * @param {Object} options - Options de pagination et de filtrage
  * @returns {Promise<Object>} Le personnel de l'unité
  */
-async function getUnitePersonnel(uniteId, options = {}) {
-  const { page = 1, limit = 10, typePersonnel } = options;
-  
-  console.log(`Fetching personnel for unite ID: ${uniteId}`);
-  
-  // Vérifier si l'unité existe
-  const unite = await prisma.unite.findUnique({
-    where: { id: uniteId }
-  });
-  
-  if (!unite) {
-    throw new Error(`L'unité avec l'ID ${uniteId} n'existe pas`);
+async function getUnitePersonnel({
+  page = 1,
+  limit = 10,
+  uniteId = null,
+  search = null,
+  typePersonnel = null
+}) {
+  const where = {};
+
+  if (uniteId) {
+    where.uniteId = uniteId;
   }
-  
-  // Construire les filtres
-  const where = { uniteId };
-  
   if (typePersonnel) {
     where.typePersonnel = typePersonnel;
   }
-  
-  // Compter le nombre total avec ces filtres
+  if (search) {
+    where.OR = [
+      { nom: { contains: search, mode: 'insensitive' } },
+      { prenom: { contains: search, mode: 'insensitive' } }
+    ];
+  }
+
   const total = await prisma.personnel.count({ where });
-  
-  // Calculer l'offset pour la pagination
   const skip = (page - 1) * limit;
-  
-  // Récupérer les données paginées
-  const personnel = await prisma.personnel.findMany({
+
+  const data = await prisma.personnel.findMany({
     where,
     skip,
     take: limit,
     include: {
-      militaire: {
-        select: {
-          id: true,
-          matricule: true,
-          grade: true
-        }
-      },
-      professeur: {
-        select: {
-          id: true,
-          specialite: true
-        }
-      },
-      etudiant: {
-        select: {
-          id: true,
-          matricule: true,
-          anneeEtude: true
-        }
-      },
-      employe: {
-        select: {
-          id: true,
-          position: true
-        }
-      }
+      unite: true
     },
     orderBy: {
       nom: 'asc'
     }
   });
-  
-  console.log(`Found ${personnel.length} personnel records for unite ID: ${uniteId}`);
-  
+
   return {
-    data: personnel,
+    data,
     pagination: {
       total,
       page: parseInt(page),

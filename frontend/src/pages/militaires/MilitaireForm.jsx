@@ -118,12 +118,7 @@ const MilitaireForm = () => {
   });
 
   // Diplome form state
-  const [diplomeForm, setDiplomeForm] = useState({
-    diplomeId: '',
-    description: '',
-    dateObtention: new Date().toISOString().split('T')[0],
-    observations: ''
-  });
+ 
   
   // Decoration form state
   const [decorationForm, setDecorationForm] = useState({
@@ -164,12 +159,7 @@ const MilitaireForm = () => {
   useEffect(() => {
     const handleMouseDown = (e) => {
       // For each modal that's open, prevent it from closing if user clicks inside form
-      if (showDiplomeModal) {
-        const diplomeForm = document.getElementById('diplome-form-container');
-        if (diplomeForm && diplomeForm.contains(e.target)) {
-          e.stopPropagation();
-        }
-      }
+      
       
       if (showDecorationModal) {
         const decorationForm = document.getElementById('decoration-form-container');
@@ -438,10 +428,6 @@ const MilitaireForm = () => {
     }
   }, []);
 
-  const handleDiplomeChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setDiplomeForm(prev => ({ ...prev, [name]: value }));
-  }, []);
   
   // Handle changes for decoration form
   const handleDecorationChange = useCallback((e) => {
@@ -477,36 +463,9 @@ const MilitaireForm = () => {
   }, []);
   
  // Add a diplome to temp collection
- const handleAddDiplome = useCallback((e) => {
-  e.preventDefault();
-  
-  if (!diplomeForm.diplomeId || !diplomeForm.description) {
-    alert('Veuillez remplir tous les champs obligatoires');
-    return;
-  }
-  
-  // Find the diplome by ID to include its details
-  const selectedDiplome = diplomes.find(d => d.id === diplomeForm.diplomeId);
-  
-  const newDiplome = {
-    ...diplomeForm,
-    id: `temp_${Date.now()}`, // Temporary ID until saved
-    diplome: selectedDiplome
-  };
-  
-  setTempDiplomes(prev => [...prev, newDiplome]);
-  
-  // Reset form
-  setDiplomeForm({
-    diplomeId: '',
-    description: '',
-    dateObtention: new Date().toISOString().split('T')[0],
-    observations: ''
-  });
-  
-  // Close modal
-  setShowDiplomeModal(false);
-}, [diplomeForm, diplomes]);
+
+
+
 
 
 // Add this to your useEffect
@@ -1431,14 +1390,14 @@ return (
         {/* Diplomes Section */}
         <div className="mb-6">
           <div className="flex justify-between items-center border-b pb-2 mb-3">
-            <h2 className="text-lg font-semibold text-gray-700">Diplômes</h2>
-            <button
-              type="button"
-              onClick={() => setShowDiplomeModal(true)}
-              className="bg-[#40916c] text-white px-3 py-1 rounded-md hover:bg-[#2d6a4f] text-sm transition-colors"
-            >
-              + Ajouter un diplôme
-            </button>
+            <h2 className="text-lg font-semibold text-gray-700">Diplômes</h2>   
+              <button 
+      onClick={() => setShowDiplomeModal(true)}
+      className="bg-[#40916c] text-white px-4 py-2 rounded-md"
+      
+    >
+      Ajouter un diplôme
+    </button>
           </div>
           
           {tempDiplomes.length === 0 ? (
@@ -1693,14 +1652,16 @@ return (
       
       
       {/* Modals */}
-      <DiplomModal 
-        showModal={showDiplomeModal}
-        onClose={() => setShowDiplomeModal(false)}
-        diplomeForm={diplomeForm}
-        handleDiplomeChange={handleDiplomeChange}
-        handleAddDiplome={handleAddDiplome}
-        diplomes={diplomes}
-      />
+      <DiplomModal
+      showModal={showDiplomeModal}
+      onClose={() => setShowDiplomeModal(false)}
+      militaireId={currentMilitaire?.id}
+      availableDiplomes={diplomes}
+      onDiplomeAdded={(newDiplome) => {
+        setTempDiplomes((prev) => [...prev, newDiplome]);
+      }}
+    />
+    
 
       <DecorationModal 
         showModal={showDecorationModal}

@@ -51,17 +51,25 @@ export const fetchUnitesByType = createAsyncThunk(
   }
 );
 
+// Récupérer le personnel d'une unité donnée
 export const fetchUnitePersonnel = createAsyncThunk(
   'unites/fetchUnitePersonnel',
-  async ({ uniteId, page = 1, limit = 10, typePersonnel }, { rejectWithValue }) => {
+  async (
+    { uniteId, page = 1, limit = 10, search = '', typePersonnel = '' },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await uniteApi.getUnitePersonnel(uniteId, { page, limit, typePersonnel });
+      const params = { page, limit };
+      if (search) params.search = search;
+      if (typePersonnel) params.typePersonnel = typePersonnel;
+      const response = await uniteApi.getUnitePersonnel(uniteId, params);
       return response.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la récupération du personnel de l\'unité' });
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.error || 'Erreur lors de la récupération du personnel');
     }
   }
 );
+
 
 export const fetchUniteStats = createAsyncThunk(
   'unites/fetchUniteStats',
@@ -127,9 +135,9 @@ export const deleteUnite = createAsyncThunk(
 const uniteSlice = createSlice({
   name: 'unites',
   initialState: {
-    unites: [],
-    currentUnite: null,
-    unitesByType: {},
+    list: [],
+    listLoading: false,
+    listError: null,
     personnel: {
       data: [],
       pagination: {
@@ -148,7 +156,13 @@ const uniteSlice = createSlice({
       page: 1,
       limit: 10,
       totalPages: 0
-    }
+    },
+    personnel: {
+      data: [],
+      pagination: { total: 0, page: 1, limit: 10, totalPages: 0 }
+    },
+    personnelLoading: false,
+    personnelError: null
   },
   reducers: {
     clearCurrentUnite: (state) => {
@@ -232,19 +246,20 @@ const uniteSlice = createSlice({
         state.error = action.payload?.error || 'Erreur lors de la récupération des unités par type';
       })
       
-      // Cas pour fetchUnitePersonnel
-      .addCase(fetchUnitePersonnel.pending, (state) => {
-        state.isLoading = true;
+      
+      // fetchUnitePersonnel
+      .addCase(fetchUnitePersonnel.pending, state => {
+        state.personnelLoading = true;
+        state.personnelError = null;
       })
       .addCase(fetchUnitePersonnel.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.error = null;
+        state.personnelLoading = false;
         state.personnel.data = action.payload.data;
         state.personnel.pagination = action.payload.pagination;
       })
       .addCase(fetchUnitePersonnel.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload?.error || 'Erreur lors de la récupération du personnel';
+        state.personnelLoading = false;
+        state.personnelError = action.payload;
       })
       
       // Cas pour fetchUniteStats
