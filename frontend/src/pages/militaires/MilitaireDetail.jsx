@@ -546,8 +546,7 @@ const AddDiplomeModal = ({ isOpen, onClose, militaireId }) => {
                     <p className="font-medium">{currentMilitaire.personnel?.email || 'Non spécifié'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Institut</p>
-                    <p className="font-medium">{currentMilitaire.personnel?.institut?.nom || 'Non spécifié'}</p>
+                  <p className="text-gray-600"><span className="font-semibold">Unité :</span> {currentMilitaire.personnel?.unite?.code}</p>
                   </div>
                 </div>
               </div>

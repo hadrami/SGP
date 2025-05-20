@@ -26,6 +26,10 @@
     "quickActions": "إجراءات سريعة"
   },
   "navigation": {
+    "main": "الرئيسية",
+    "personnel": "الموظفين",
+    "education": "التعليم",
+    "system": "النظام",
     "dashboard": "لوحة القيادة",
     "users": "المستخدمين",
     "military": "الموظفين العسكريين",
@@ -45,6 +49,50 @@
     "filter": "تصفية",
     "view": "عرض",
     "download": "تنزيل",
-    "upload": "رفع"
+    "upload": "رفع",
+    "printing": "جاري الطباعة…"
+  },
+  "institutes": {
+    "list": {
+      "title": "قائمة المعاهد",
+      "print": "طباعة",
+      "add": "إضافة معهد",
+      "searchPlaceholder": "ابحث عن معهد…",
+      "search": "بحث",
+      "columns": {
+        "code": "الرمز",
+        "name": "الاسم",
+        "location": "الموقع",
+        "year": "سنة الدراسة",
+        "speciality": "التخصص",
+        "actions": "الإجراءات"
+      },
+      "loading": "جارٍ تحميل المعاهد…",
+      "noData": "لا يوجد معاهد"
+    }
+  },
+  "militaires": {
+    "list": {
+      "title": "قائمة العسكريين",
+      "print": "طباعة",
+      "add": "إضافة عسكري",
+      "searchPlaceholder": "ابحث عن عسكري…",
+      "search": "بحث",
+      "columns": {
+        "matricule": "الرقم العسكري",
+        "nom": "الاسم",
+        "prenom": "اللقب",
+        "grade": "الرتبة",
+        "categorie": "الفئة",
+        "situation": "الوضع",
+        "unite": "الوحدة",
+        "actions": "الإجراءات"
+      },
+      "loading": "جارٍ تحميل العسكريين…",
+      "noData": "لا يوجد عسكريين"
+    }
+  },
+  "uniteDetail": {
+    "title": "قائمة موظفي {{code}}"
   }
 }

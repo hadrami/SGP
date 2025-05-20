@@ -299,10 +299,7 @@ const MilitairesList = () => {
                       <span className="font-medium text-gray-500">Catégorie:</span>
                       <span className="ml-1">{militaire.categorie?.replace(/_/g, ' ') || '-'}</span>
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-500">Unité:</span>
-                      <span className="ml-1">{militaire.division || militaire.sousUnite?.nom || '-'}</span>
-                    </div>
+                  
                     <div>
                       <span className="font-medium text-gray-500">Situation:</span>
                       <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
@@ -395,11 +392,11 @@ const MilitairesList = () => {
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {militaire.situation?.replace(/_/g, ' ') || 'PRESENT'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {militaire.division || militaire.sousUnite?.nom || '-'}
-                      </td>
+                          </span>
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-500">
+                 {militaire.personnel.unite?.code || '-'}
+               </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right">
                         <div className="flex justify-end space-x-1">
                           <Link 

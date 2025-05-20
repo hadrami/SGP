@@ -1041,21 +1041,16 @@ return (
             <label htmlFor="uniteId" className="block text-gray-700 mb-1">
               Unité <span className="text-red-500">*</span>
             </label>
-            <select
-              id="uniteId"
-              name="uniteId"
-              value={formData.uniteId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
-              required
-            >
-              <option value="">Sélectionner une unité</option>
-              {unites.map(unite => (
-                <option key={unite.id} value={unite.id}>
-                  {unite.nom} ({unite.code}) {unite.type && `- ${unite.type}`}
-                </option>
-              ))}
-            </select>
+            <select id="uniteId" name="uniteId" value={formData.uniteId}
+                            onChange={handleChange} className="w-full px-3 py-2 border rounded-lg">
+                       <option value="">Sélectionner une unité</option>
+                     {unites.map(i => <option key={i.id} value={i.id}>{i.nom} ({i.code})</option>)}
+                     {unites.map(u => (
+                       <option key={u.id} value={u.id}>
+                          {u.code} – {u.nom}
+                        </option>
+                      ))}
+                    </select>
           </div>
         </div>
       </div>

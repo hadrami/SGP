@@ -51,6 +51,50 @@
     "filter": "Filtrer",
     "view": "Voir",
     "download": "Télécharger",
-    "upload": "Importer"
+    "upload": "Importer",
+    "printing": "Impression…"
+  },
+  "institutes": {
+    "list": {
+      "title": "Liste des Instituts",
+      "print": "Imprimer",
+      "add": "Ajouter un institut",
+      "searchPlaceholder": "Rechercher un institut…",
+      "search": "Rechercher",
+      "columns": {
+        "code": "Code",
+        "name": "Nom",
+        "location": "Emplacement",
+        "year": "Année d'étude",
+        "speciality": "Spécialité",
+        "actions": "Actions"
+      },
+      "loading": "Chargement des instituts…",
+      "noData": "Aucun institut trouvé"
+    }
+  },
+  "militaires": {
+    "list": {
+      "title": "Liste des Militaires",
+      "print": "Imprimer",
+      "add": "Ajouter un militaire",
+      "searchPlaceholder": "Rechercher un militaire…",
+      "search": "Rechercher",
+      "columns": {
+        "matricule": "Matricule",
+        "nom": "Nom",
+        "prenom": "Prénom",
+        "grade": "Grade",
+        "categorie": "Catégorie",
+        "situation": "Situation",
+        "unite": "Unité",
+        "actions": "Actions"
+      },
+      "loading": "Chargement des militaires…",
+      "noData": "Aucun militaire trouvé"
+    }
+  },
+  "uniteDetail": {
+    "title": "Personnel de {{code}}"
   }
 }

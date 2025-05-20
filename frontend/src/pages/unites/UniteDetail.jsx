@@ -6,15 +6,17 @@ import {
   fetchUniteByCode,
   fetchUnitePersonnel
 } from '../../redux/slices/uniteSlice';
-import Loader     from '../../components/common/Loader';
-import ErrorAlert from '../../components/common/ErrorAlert';
+import Loader       from '../../components/common/Loader';
+import ErrorAlert   from '../../components/common/ErrorAlert';
 import {
   EyeIcon,
   PencilSquareIcon,
   TrashIcon,
   HomeIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  PrinterIcon
 } from '@heroicons/react/24/outline';
+import { printUnitePersonnel }            from '../../utils/PrintUtils';
 
 export default function UniteDetail() {
   const { code } = useParams();
@@ -31,6 +33,7 @@ export default function UniteDetail() {
   // Local UI state
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage]             = useState(1);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Load unit metadata when `code` changes
   useEffect(() => {
@@ -57,6 +60,18 @@ export default function UniteDetail() {
   const handleNextPage = () => setPage(p => Math.min(p + 1, pagination.totalPages));
 
   const formatText = txt => txt ? txt.replace(/_/g, ' ') : '-';
+
+  const handlePrint = () => {
+    if (isPrinting || data.length === 0) return;
+    setIsPrinting(true);
+    try {
+      printUnitePersonnel(data, currentUnite, pagination);
+    } catch (err) {
+      console.error('Print error:', err);
+    } finally {
+      setTimeout(() => setIsPrinting(false), 2000);
+    }
+  };
 
   if (personnelLoading) return <Loader />;
   if (personnelError)   return <ErrorAlert message={personnelError} />;
@@ -103,7 +118,7 @@ export default function UniteDetail() {
         </div>
       </div>
 
-      {/* Filter/Add Controls */}
+      {/* Filter/Add/Print Controls */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <div className="flex items-center space-x-2">
           <label className="font-medium">Filtrer :</label>
@@ -115,17 +130,29 @@ export default function UniteDetail() {
             <option value="">Tous</option>
             <option value="MILITAIRE">Militaires</option>
             <option value="CIVIL_ETUDIANT">Étudiants</option>
-            <option value="CIVIL_EMPLOYE">Employés</option>
+            <option value="CIVAL_EMPLOYE">Employés</option>
             <option value="CIVAL_PROFESSEUR">Professeurs</option>
           </select>
         </div>
-        <Link
-          to={`/militaires/new?uniteId=${currentUnite.id}`}
-          className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          <UserPlusIcon className="w-5 h-5 mr-2" />
-          Ajouter
-        </Link>
+        <div className="flex space-x-2">
+          <button
+            onClick={handlePrint}
+            disabled={isPrinting || data.length === 0}
+            className={`inline-flex items-center bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 ${
+              isPrinting || data.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <PrinterIcon className="w-5 h-5 mr-2" />
+            {isPrinting ? 'Impression...' : 'Imprimer'}
+          </button>
+          <Link
+            to={`/militaires/new?uniteId=${currentUnite.id}`}
+            className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            <UserPlusIcon className="w-5 h-5 mr-2" />
+            Ajouter
+          </Link>
+        </div>
       </div>
 
       {/* Personnel Table */}
