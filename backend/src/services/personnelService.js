@@ -1,7 +1,40 @@
 // src/services/personnelService.js
-const { PrismaClient } = require('@prisma/client');
-
+import fs from 'fs';
+import path from 'path';
+import { pipeline } from 'stream/promises';
+import { PrismaClient } from '@prisma/client';
+import { fileURLToPath } from 'url';
 const prisma = new PrismaClient();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const UPLOAD_DIR = path.resolve(__dirname, '../uploads/personnel');
+
+
+// Ensure upload directory exists
+function ensureUploadDir() {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+}
+
+/**
+ * Save an uploaded image and update personnel.imageUrl
+ */
+export async function savePersonnelImage(personnelId, part) {
+  ensureUploadDir();
+  const ext = path.extname(part.filename);
+  const filename = `${personnelId}_${Date.now()}${ext}`;  // unique filename
+  const filepath = path.join(UPLOAD_DIR, filename);
+
+  await pipeline(part.file, fs.createWriteStream(filepath));         // write file
+  const imageUrl = `/uploads/personnel/${filename}`;                  // public URL
+  await prisma.personnel.update({                                    // persist URL
+    where: { id: personnelId },
+    data: { imageUrl }
+  });
+  return imageUrl;
+}
 
 /**
  * Récupère tous les personnels avec pagination
@@ -144,7 +177,7 @@ async function getPersonnelByNNI(nni) {
  * @param {Object} personnelData - Les données du personnel
  * @returns {Promise<Object>} Le personnel créé
  */
-async function createPersonnel(personnelData) {
+async function createPersonnel(personnelData, part) {
   const {
     typePersonnel,
     nom,
@@ -176,7 +209,7 @@ async function createPersonnel(personnelData) {
   }
   
   // Créer le personnel de base
-  return await prisma.personnel.create({
+  const newP = await prisma.personnel.create({    
     data: {
       typePersonnel,
       nom,
@@ -189,6 +222,13 @@ async function createPersonnel(personnelData) {
       institutId
     }
   });
+    // If image part provided, save and update
+    if (part) {
+      const imageUrl = await savePersonnelImage(newP.id, part);  
+      newP.imageUrl = imageUrl;
+    }
+  
+    return newP;
 }
 
 /**
@@ -197,7 +237,7 @@ async function createPersonnel(personnelData) {
  * @param {Object} personnelData - Les nouvelles données du personnel
  * @returns {Promise<Object>} Le personnel mis à jour
  */
-async function updatePersonnel(id, personnelData) {
+async function updatePersonnel(id, personnelData, part) {
   const {
     nom,
     prenom,
@@ -229,7 +269,7 @@ async function updatePersonnel(id, personnelData) {
   }
   
   // Mettre à jour le personnel
-  return await prisma.personnel.update({
+  const updated = await prisma.personnel.update({
     where: { id },
     data: {
       nom,
@@ -250,7 +290,20 @@ async function updatePersonnel(id, personnelData) {
       }
     }
   });
+  // If new image provided, save and update (overwrites previous)
+  if (part) {
+    // Optionally delete old file
+    if (updated.imageUrl) {
+      const oldPath = path.join(UPLOAD_DIR, path.basename(updated.imageUrl));
+      fs.unlink(oldPath, () => {});  // ignore errors
+    }
+    const imageUrl = await savePersonnelImage(id, part);
+    updated.imageUrl = imageUrl;
+  }
+
+  return updated;
 }
+
 
 /**
  * Supprime un personnel
@@ -336,7 +389,7 @@ async function searchPersonnel(query) {
   });
 }
 
-module.exports = {
+export  {
   getAllPersonnel,
   getPersonnelById,
   getPersonnelByNNI,

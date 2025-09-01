@@ -36,6 +36,11 @@ const personnelApi = {
   updatePersonnel: (id, personnelData) => {
     return api.put(`/api/personnels/${id}`, personnelData);
   },
+   // ③ Upload/replace image
+   uploadImage: (id, formData) =>
+    api.patch(`/api/personnels/${id}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 
   // Supprimer un personnel
   deletePersonnel: (id) => {

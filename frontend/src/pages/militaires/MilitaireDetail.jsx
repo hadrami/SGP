@@ -621,6 +621,12 @@ const AddDiplomeModal = ({ isOpen, onClose, militaireId }) => {
                 <h3 className="text-lg font-semibold text-[#40916c] mb-4 border-b pb-2">
                   Informations Professionnelles
                 </h3>
+                <img
+  src={currentMilitaire.personnel?.imageUrl || '/placeholder.png'}
+  alt="photo"
+  className="w-24 h-24 rounded-full object-cover"
+/>
+
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500">Arme / Branche</p>

@@ -13,6 +13,8 @@ import {
   addNotation,
   addStageMilitaire
 } from '../../redux/slices/militaireSlice';
+import { uploadPersonnelImage } from '../../redux/slices/personnelSlice';
+
 
 // At the top of your file with other imports
 import { 
@@ -39,6 +41,8 @@ const MilitaireForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = !!id;
+  const [file, setFile] = useState(null);
+
   
   // Get militaire data from Redux state
   const { currentMilitaire, isLoading, error, diplomes } = useSelector(state => state.militaires);
@@ -851,7 +855,11 @@ try {
       id, 
       militaireData: submitData 
     })).unwrap();
-    
+
+    if (file) {
+      await dispatch(uploadPersonnelImage({ id, file })).unwrap();
+       }
+
     // Upload documents if any
     if (tempDocuments.some(doc => doc.file)) {
       await uploadDocuments(result.id);
@@ -866,7 +874,9 @@ try {
     navigate(`/militaires/${result.id}`);
   } else {
     const result = await dispatch(createMilitaire(submitData)).unwrap();
-    
+    if (file) {
+    await dispatch(uploadPersonnelImage({ id, file })).unwrap();
+     }
     // Upload documents if any
     if (tempDocuments.some(doc => doc.file)) {
       await uploadDocuments(result.id);
@@ -1036,6 +1046,15 @@ return (
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#40916c]"
             />
           </div>
+          <div>
+      <label>Photo d’identité</label>
+     <input
+        type="file"
+        accept="image/*"
+         onChange={e => setFile(e.target.files[0])}
+       />
+    </div>
+
           
           <div className="form-group">
             <label htmlFor="uniteId" className="block text-gray-700 mb-1">

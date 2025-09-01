@@ -73,7 +73,7 @@ const militaireApi = {
   },
 
   // Créer un nouveau militaire avec toutes les données
-  createMilitaire: async (militaireData) => {
+  createMilitaire: async (militaireData, file) => {
     console.log('Creating militaire with data:', militaireData);
     try {
       const response = await api.post('/api/militaires', militaireData);

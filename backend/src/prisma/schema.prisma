@@ -297,6 +297,8 @@ model Personnel {
   lieuNaissance String?
   telephone     String?
   email         String?
+  imageUrl      String?
+
 
   // NNI commun à tous
   nni String @unique

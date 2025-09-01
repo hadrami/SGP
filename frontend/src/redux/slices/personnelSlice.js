@@ -36,24 +36,53 @@ export const fetchPersonnelByNni = createAsyncThunk(
   }
 );
 
+// 1. Create which can include a file
 export const createPersonnel = createAsyncThunk(
-  'personnels/createPersonnel',
-  async (personnelData, { rejectWithValue }) => {
+  'personnels/create',
+  async ({ data, file }, { rejectWithValue }) => {
     try {
-      return await personnelApi.createPersonnel(personnelData);
-    } catch (error) {
-      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la création du personnel' });
+      const form = new FormData();
+      Object.entries(data).forEach(([k,v]) => form.append(k, v));
+      if (file) form.append('file', file);
+
+      const { data: created } = await personnelApi.createPersonnel(form);
+      return created;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
     }
   }
 );
 
+// 2. Update metadata and then optionally swap photo
 export const updatePersonnel = createAsyncThunk(
-  'personnels/updatePersonnel',
-  async ({ id, personnelData }, { rejectWithValue }) => {
+  'personnels/update',
+  async ({ id, data, file }, { dispatch, rejectWithValue }) => {
     try {
-      return await personnelApi.updatePersonnel(id, personnelData);
-    } catch (error) {
-      return rejectWithValue(error.response?.data || { error: 'Erreur lors de la mise à jour du personnel' });
+      const { data: updated } = await personnelApi.updatePersonnel(id, data);
+      if (file) {
+        const form = new FormData();
+        form.append('file', file);
+        const { data: imageRes } = await personnelApi.uploadImage(id, form);
+        updated.imageUrl = imageRes.imageUrl;
+      }
+      return updated;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// 3. (Existing) a standalone image‐only thunk if you still need it
+export const uploadPersonnelImage = createAsyncThunk(
+  'personnels/uploadImage',
+  async ({ id, file }, { rejectWithValue }) => {
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await personnelApi.uploadImage(id, form);
+      return { id, imageUrl: data.imageUrl };
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
     }
   }
 );
@@ -217,7 +246,23 @@ const personnelSlice = createSlice({
       .addCase(fetchPersonnelStats.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload?.error || 'Erreur lors de la récupération des statistiques';
-      });
+      })
+       // uploadPersonnelImage
+       .addCase(uploadPersonnelImage.pending, (state) => { state.isLoading = true; })
+       .addCase(uploadPersonnelImage.fulfilled, (state, action) => {
+         state.isLoading = false;
+         state.error = null;
+         const { id, imageUrl } = action.payload;
+         if (state.currentPersonnel?.id === id) {
+           state.currentPersonnel.imageUrl = imageUrl;
+         }
+         const idx = state.personnels.findIndex(p => p.id === id);
+         if (idx !== -1) state.personnels[idx].imageUrl = imageUrl;
+       })
+       .addCase(uploadPersonnelImage.rejected, (state, action) => {
+         state.isLoading = false;
+         state.error = action.payload?.error || 'Erreur lors de l\'upload de l\'image';
+       });
   }
 });
 
